@@ -1,0 +1,31 @@
+{
+  "name": "@fintech/hooks",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fintech/lib": "workspace:*",
+    "@fintech/types": "workspace:*",
+    "@fintech/config": "workspace:*",
+    "@tanstack/react-query": "^5.62.8",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.2",
+    "typescript": "^5.7.2"
+  },
+  "peerDependencies": {
+    "next": ">=14.0.0",
+    "react": ">=18.0.0"
+  }
+}

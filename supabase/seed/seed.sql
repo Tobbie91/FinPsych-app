@@ -1,0 +1,10 @@
+-- Seed file placeholder
+--
+-- Add seed data for development/testing here.
+-- DO NOT add production data or sensitive information.
+--
+-- Example:
+-- INSERT INTO public.institutions (name) VALUES ('Test Bank');
+--
+-- Note: User seeding should be done through Supabase Auth,
+-- not directly into the database.
