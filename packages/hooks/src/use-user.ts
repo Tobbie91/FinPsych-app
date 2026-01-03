@@ -6,7 +6,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createBrowserClient, getCurrentUser } from '@fintech/lib';
+import { createBrowserClient, getCurrentUser } from '@fintech/lib/client';
 import type { User } from '@fintech/types';
 
 interface UseUserReturn {

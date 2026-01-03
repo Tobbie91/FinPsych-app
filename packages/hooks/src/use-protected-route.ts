@@ -8,7 +8,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from './use-user';
-import { getRedirectUrlForUser, hasRequiredRole } from '@fintech/lib';
+import { getRedirectUrlForUser, hasRequiredRole } from '@fintech/lib/client';
 import { APP_CONFIG } from '@fintech/config';
 import type { Role } from '@fintech/types';
 

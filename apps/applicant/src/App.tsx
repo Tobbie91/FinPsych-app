@@ -4,12 +4,14 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Questionnaire from './pages/Questionnaire';
+import Submitted from './pages/Submitted';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/questionnaire" element={<Questionnaire />} />
+      <Route path="/submitted" element={<Submitted />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/dashboard" element={<Dashboard />} />

@@ -7,7 +7,7 @@
 
 import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createBrowserClient, signIn, signUp, signOut } from '@fintech/lib';
+import { createBrowserClient, signIn, signUp, signOut } from '@fintech/lib/client';
 import type { SignInRequest, SignUpRequest, User } from '@fintech/types';
 import { useUser } from './use-user';
 

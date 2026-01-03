@@ -1,16 +1,17 @@
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 import { Providers } from './providers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Institution Portal',
-  description: 'Fintech credit application - Institution portal',
+  title: 'FINPSYCH - Institution Portal',
+  description: 'Credit worthiness assessment portal for lending institutions',
 };
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <html lang="en">

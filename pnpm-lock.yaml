@@ -68,6 +68,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.62.8
         version: 5.90.12(react@19.2.3)
+      lucide-react:
+        specifier: ^0.469.0
+        version: 0.469.0(react@19.2.3)
       next:
         specifier: ^15.1.0
         version: 15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -117,6 +120,9 @@ importers:
       '@fintech/lib':
         specifier: workspace:*
         version: link:../../packages/lib
+      '@fintech/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       '@fintech/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -205,6 +211,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.62.8
         version: 5.90.12(react@19.2.3)
+      lucide-react:
+        specifier: ^0.468.0
+        version: 0.468.0(react@19.2.3)
       next:
         specifier: ^15.1.0
         version: 15.5.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -304,6 +313,12 @@ importers:
     devDependencies:
       typescript:
         specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/scoring:
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
         version: 5.9.3
 
   packages/types:
@@ -2003,6 +2018,11 @@ packages:
     resolution: {integrity: sha512-6koYRhnM2N0GGZIdXzSeiNwguv1gt/FAjZOiPl76roBi3xKEXa4WmfpxgQwTTL4KipXjefrnf3oV4IsYhi4JFA==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+
+  lucide-react@0.469.0:
+    resolution: {integrity: sha512-28vvUnnKQ/dBwiCQtwJw7QauYnE7yd2Cyp4tTTJpvglX4EMpbflcdBgrgToX2j71B3YvugK/NH3BGUk+E/p/Fw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -4465,6 +4485,10 @@ snapshots:
       yallist: 3.1.1
 
   lucide-react@0.468.0(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+
+  lucide-react@0.469.0(react@19.2.3):
     dependencies:
       react: 19.2.3
 

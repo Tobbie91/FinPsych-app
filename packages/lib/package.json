@@ -9,6 +9,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./client": {
+      "types": "./src/client.ts",
+      "default": "./src/client.ts"
+    },
     "./supabase/client": {
       "types": "./src/supabase/client.ts",
       "default": "./src/supabase/client.ts"

@@ -1,12 +1,76 @@
-import { type NextRequest } from 'next/server';
-import { updateSession } from '@fintech/lib';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
 
-/**
- * Middleware to refresh Supabase auth session.
- * This runs before every request to keep the session alive.
- */
+interface CookieToSet {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+}
+
 export async function middleware(request: NextRequest) {
-  return await updateSession(request);
+  let supabaseResponse = NextResponse.next({
+    request,
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet: CookieToSet[]) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          supabaseResponse = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
+
+  // Refresh session if expired
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login');
+  const isProtectedPage = !isAuthPage && !request.nextUrl.pathname.startsWith('/_next');
+
+  // If accessing protected pages without auth, redirect to login
+  if (isProtectedPage && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // If authenticated but not admin, redirect to login with error
+  if (isProtectedPage && user) {
+    const role = user.user_metadata?.role;
+    if (role !== 'admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // If authenticated admin on login page, redirect to dashboard
+  if (isAuthPage && user) {
+    const role = user.user_metadata?.role;
+    if (role === 'admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+  }
+
+  return supabaseResponse;
 }
 
 export const config = {

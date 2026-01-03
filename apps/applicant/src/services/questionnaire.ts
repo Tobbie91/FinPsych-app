@@ -11,12 +11,16 @@ export interface ApplicantData {
   fullName?: string;
 }
 
+// Use untyped client for tables that may not have matching generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
 /**
  * Create or get an applicant by email
  */
 export async function getOrCreateApplicant(data: ApplicantData) {
   // First try to find existing applicant
-  const { data: existing, error: findError } = await supabase
+  const { data: existing } = await db
     .from('applicants')
     .select('*')
     .eq('email', data.email)
@@ -27,7 +31,7 @@ export async function getOrCreateApplicant(data: ApplicantData) {
   }
 
   // Create new applicant
-  const { data: newApplicant, error: createError } = await supabase
+  const { data: newApplicant, error: createError } = await db
     .from('applicants')
     .insert({
       email: data.email,
@@ -46,7 +50,7 @@ export async function saveQuestionnaireResponses(
   applicantId: string,
   data: QuestionnaireData
 ) {
-  const { data: response, error } = await supabase
+  const { data: response, error } = await db
     .from('questionnaire_responses')
     .upsert(
       {
@@ -71,7 +75,7 @@ export async function saveQuestionnaireResponses(
  * Get existing questionnaire responses for an applicant
  */
 export async function getQuestionnaireResponses(applicantId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('questionnaire_responses')
     .select('*')
     .eq('applicant_id', applicantId)
@@ -84,7 +88,7 @@ export async function getQuestionnaireResponses(applicantId: string) {
  * Submit the questionnaire (final submission)
  */
 export async function submitQuestionnaire(applicantId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('questionnaire_responses')
     .update({
       status: 'submitted',
@@ -101,7 +105,7 @@ export async function submitQuestionnaire(applicantId: string) {
  * Get applicant's credit score (if calculated)
  */
 export async function getCreditScore(applicantId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('credit_scores')
     .select('*')
     .eq('applicant_id', applicantId)
