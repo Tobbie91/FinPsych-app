@@ -48,6 +48,7 @@ export default function UsersPage() {
   const [formData, setFormData] = useState({ name: '', email: '', roles: [] as string[] });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const itemsPerPage = 8;
 
   const supabase = createBrowserClient(
@@ -86,10 +87,11 @@ export default function UsersPage() {
     e.preventDefault();
     setIsSaving(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       if (editingUser) {
-        // Update existing
+        // Update existing user
         const { error } = await supabase
           .from('admin_users')
           .update({
@@ -101,23 +103,34 @@ export default function UsersPage() {
           .eq('id', editingUser.id);
 
         if (error) throw error;
+        setShowModal(false);
+        setFormData({ name: '', email: '', roles: [] });
+        setEditingUser(null);
+        fetchUsers();
       } else {
-        // Create new
-        const { error } = await supabase
-          .from('admin_users')
-          .insert({
+        // Send invitation for new user
+        const response = await fetch('/api/admin/invite-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             name: formData.name,
             email: formData.email,
             roles: formData.roles,
-          });
+          }),
+        });
 
-        if (error) throw error;
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to send invitation');
+        }
+
+        setShowModal(false);
+        setFormData({ name: '', email: '', roles: [] });
+        setSuccessMessage(`Invitation sent to ${formData.email}`);
+        setTimeout(() => setSuccessMessage(null), 5000);
+        fetchUsers();
       }
-
-      setShowModal(false);
-      setFormData({ name: '', email: '', roles: [] });
-      setEditingUser(null);
-      fetchUsers();
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save user';
       setError(errorMessage);
@@ -234,6 +247,12 @@ export default function UsersPage() {
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
           {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700">
+          {successMessage}
         </div>
       )}
 
@@ -464,7 +483,7 @@ export default function UsersPage() {
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">
-                {editingUser ? 'Edit User' : 'Add New User'}
+                {editingUser ? 'Edit User' : 'Invite New User'}
               </h2>
               <button
                 onClick={() => {
@@ -538,7 +557,7 @@ export default function UsersPage() {
                 className="w-full mt-6 px-4 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
               >
                 {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
-                {editingUser ? 'Save Changes' : 'Create User'}
+                {editingUser ? 'Save Changes' : 'Send Invitation'}
               </button>
             </form>
           </div>

@@ -14,3 +14,10 @@ export { Button } from './components/button';
 export { Input } from './components/input';
 export { Card } from './components/card';
 export { Spinner } from './components/spinner';
+
+// -----------------------------------------------------------------------------
+// Theme Components
+// -----------------------------------------------------------------------------
+
+export { ThemeProvider, useTheme } from './components/theme-provider';
+export { ThemeToggle } from './components/theme-toggle';

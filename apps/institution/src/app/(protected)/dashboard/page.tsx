@@ -10,9 +10,11 @@ import {
   Check,
   Loader2,
   SlidersHorizontal,
+  LogOut,
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { useRouter } from 'next/navigation';
+import { ThemeToggle } from '@fintech/ui';
 
 // Types
 interface Applicant {
@@ -51,6 +53,7 @@ export default function DashboardPage() {
   const [copied, setCopied] = useState(false);
   const [institutionId, setInstitutionId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const itemsPerPage = 10;
 
   const supabase = createBrowserClient(
@@ -143,9 +146,12 @@ export default function DashboardPage() {
   };
 
   // Generate questionnaire link
-  const questionnaireLink = institutionId
-    ? `${typeof window !== 'undefined' ? window.location.origin.replace('3001', '3000') : ''}/questionnaire?institution=${institutionId}`
-    : '';
+  const getQuestionnaireLink = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_APPLICANT_URL ||
+      (typeof window !== 'undefined' ? window.location.origin.replace('3001', '3000') : '');
+    return institutionId ? `${baseUrl}/questionnaire?institution=${institutionId}` : '';
+  };
+  const questionnaireLink = getQuestionnaireLink();
 
   const handleCopyLink = async () => {
     if (questionnaireLink) {
@@ -218,6 +224,13 @@ export default function DashboardPage() {
     router.push(`/applicant/${applicantId}`);
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -230,14 +243,31 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-8 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-            <span className="text-blue-600 text-lg">🌐</span>
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">FP</span>
+            </div>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">FINPSYCH</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">FINPSYCH</span>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isLoggingOut ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <LogOut className="w-5 h-5" />
+              )}
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </header>
 

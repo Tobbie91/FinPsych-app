@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
+import { ThemeProvider } from '@fintech/ui';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -20,5 +21,11 @@ export function Providers({ children }: ProvidersProps) {
       })
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="finpsych-admin-theme">
+        {children}
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 }

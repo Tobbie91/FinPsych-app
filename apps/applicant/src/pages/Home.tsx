@@ -1,17 +1,21 @@
 import { ClipboardList, Clock, Shield, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@fintech/ui';
 
 export default function Home() {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Header */}
-      <header className="px-6 py-4 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex items-center gap-2">
-          <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">FP</span>
+      <header className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">FP</span>
+            </div>
+            <span className="text-xl font-bold text-gray-900 dark:text-white">FINPSYCH</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">FINPSYCH</span>
+          <ThemeToggle />
         </div>
       </header>
 
@@ -39,14 +43,14 @@ export default function Home() {
       <div className="max-w-6xl mx-auto px-6 py-16">
         {/* Welcome Section */}
         <div className="mb-16 text-center max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
             Welcome to Your Assessment
           </h2>
-          <p className="text-gray-600 text-lg mb-4 leading-relaxed">
+          <p className="text-gray-600 dark:text-gray-300 text-lg mb-4 leading-relaxed">
             To help us understand your financial habits, decision-making style, and overall reliability,
             we've prepared a comprehensive questionnaire known as the Creditworthiness Index (CWI) assessment.
           </p>
-          <p className="text-gray-600 text-lg leading-relaxed">
+          <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
             Your responses will allow us to create a more accurate and fair evaluation tailored to you.
             There are no right or wrong answers—simply choose the options that best reflect your real
             behaviour and personal experiences.
@@ -56,41 +60,41 @@ export default function Home() {
         {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {/* Assessment Scope Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-teal-200 transition-all">
-            <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-4">
-              <ClipboardList className="w-6 h-6 text-teal-600" />
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:shadow-lg hover:border-teal-200 dark:hover:border-teal-600 transition-all">
+            <div className="w-12 h-12 bg-teal-50 dark:bg-teal-900/30 rounded-xl flex items-center justify-center mb-4">
+              <ClipboardList className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
               Assessment Scope
             </h3>
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
               The questionnaire contains multiple sections covering your financial behaviour,
               personality traits, risk preference, and more.
             </p>
           </div>
 
           {/* Estimated Time Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-teal-200 transition-all">
-            <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-4">
-              <Clock className="w-6 h-6 text-teal-600" />
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:shadow-lg hover:border-teal-200 dark:hover:border-teal-600 transition-all">
+            <div className="w-12 h-12 bg-teal-50 dark:bg-teal-900/30 rounded-xl flex items-center justify-center mb-4">
+              <Clock className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
               Estimated Time
             </h3>
-            <p className="text-gray-600 leading-relaxed">
-              The questionnaire typically takes <span className="text-teal-600 font-semibold">8-12 minutes</span> to complete.
+            <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+              The questionnaire typically takes <span className="text-teal-600 dark:text-teal-400 font-semibold">8-12 minutes</span> to complete.
             </p>
           </div>
 
           {/* Confidentiality Card */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-teal-200 transition-all">
-            <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-4">
-              <Shield className="w-6 h-6 text-teal-600" />
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:shadow-lg hover:border-teal-200 dark:hover:border-teal-600 transition-all">
+            <div className="w-12 h-12 bg-teal-50 dark:bg-teal-900/30 rounded-xl flex items-center justify-center mb-4">
+              <Shield className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
               Confidentiality
             </h3>
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
               Your information is kept confidential and securely protected under strict data privacy standards.
             </p>
           </div>
@@ -109,8 +113,8 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 py-6">
-        <div className="max-w-6xl mx-auto px-6 text-center text-gray-500 text-sm">
+      <footer className="border-t border-gray-100 dark:border-gray-800 py-6">
+        <div className="max-w-6xl mx-auto px-6 text-center text-gray-500 dark:text-gray-400 text-sm">
           Powered by FINPSYCH - Financial Psychology Assessment
         </div>
       </footer>
