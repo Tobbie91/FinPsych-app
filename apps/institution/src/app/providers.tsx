@@ -23,7 +23,7 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="finpsych-institution-theme">
+      <ThemeProvider defaultTheme="light" storageKey="finpsych-institution-theme">
         {children}
       </ThemeProvider>
     </QueryClientProvider>
