@@ -59,21 +59,24 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
+      // Fetch all admin users from admin_users table
       const { data, error } = await supabase
         .from('admin_users')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching users:', error);
-        setError('Failed to load users. Make sure the admin_users table exists.');
+        console.error('Error fetching admin users:', error);
+        setUsers([]);
+        setError(error.message);
       } else {
         setUsers(data || []);
         setError(null);
       }
     } catch (err) {
       console.error('Error:', err);
-      setError('Failed to connect to database');
+      setUsers([]);
+      setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -81,6 +84,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,26 +112,21 @@ export default function UsersPage() {
         setEditingUser(null);
         fetchUsers();
       } else {
-        // Send invitation for new user
-        const response = await fetch('/api/admin/invite-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        // Create new user
+        const { error } = await supabase
+          .from('admin_users')
+          .insert({
             name: formData.name,
             email: formData.email,
             roles: formData.roles,
-          }),
-        });
+            status: 'active',
+          });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to send invitation');
-        }
+        if (error) throw error;
 
         setShowModal(false);
         setFormData({ name: '', email: '', roles: [] });
-        setSuccessMessage(`Invitation sent to ${formData.email}`);
+        setSuccessMessage(`User ${formData.name} created successfully`);
         setTimeout(() => setSuccessMessage(null), 5000);
         fetchUsers();
       }

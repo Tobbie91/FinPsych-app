@@ -1,8 +1,6 @@
 import { CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export default function SubmittedPage() {
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -56,7 +54,10 @@ export default function SubmittedPage() {
 
             {/* Back to Home Button */}
             <button
-              onClick={() => navigate('/')}
+              onClick={() => {
+                // Redirect to admin landing page
+                window.location.href = 'http://localhost:3002';
+              }}
               className="w-full py-3 bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-xl transition-colors"
             >
               Back to Home

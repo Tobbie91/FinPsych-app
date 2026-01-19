@@ -379,7 +379,7 @@ export default function DashboardPage() {
       setIsLoading(true);
 
       try {
-        // Fetch all applicants (admin can see all)
+        // Admins can see ALL applicants from ALL institutions
         const { data: applicantsData, error: applicantsError } = await supabase
           .from('applicants')
           .select('*')
@@ -615,17 +615,17 @@ export default function DashboardPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Age distribution colors
+  // Age distribution colors - vibrant, distinct colors
   const ageColors: Record<string, string> = {
-    '18-23': '#1e3a5f',
-    '18 - 23 yrs': '#1e3a5f',
-    '24-29': '#2563eb',
-    '24 - 29yrs': '#2563eb',
-    '30-35': '#3b82f6',
-    '30 - 35yrs': '#3b82f6',
-    '36-40': '#60a5fa',
-    '40+': '#93c5fd',
-    '40 yrs and above': '#93c5fd',
+    '18-23': '#ec4899',        // Pink
+    '18 - 23 yrs': '#ec4899',  // Pink
+    '24-29': '#8b5cf6',        // Purple
+    '24 - 29yrs': '#8b5cf6',   // Purple
+    '30-35': '#3b82f6',        // Blue
+    '30 - 35yrs': '#3b82f6',   // Blue
+    '36-40': '#14b8a6',        // Teal
+    '40+': '#f59e0b',          // Amber
+    '40 yrs and above': '#f59e0b', // Amber
   };
 
   if (isLoading) {
@@ -640,13 +640,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-8 bg-gradient-to-br from-[#1a2332] via-[#1e2a3d] to-[#0f1419] min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Responses overview</h1>
+        <h1 className="text-2xl font-bold text-white">Responses overview</h1>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors"
         >
           <Download className="w-4 h-4" />
           Export
@@ -654,72 +654,75 @@ export default function DashboardPage() {
       </div>
 
       {/* Detailed Assessment Breakdown Card */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+      <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
         <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Detailed Assessment Breakdown</h2>
-          <p className="text-sm text-gray-500">Analysis of all survey responses</p>
+          <h2 className="text-lg font-semibold text-white">Detailed Assessment Breakdown</h2>
+          <p className="text-sm text-gray-400">Analysis of all survey responses</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-8 border-b border-gray-200 mb-6">
+        <div className="flex gap-8 border-b border-slate-600 mb-6">
           <button
             onClick={() => setActiveTab('summary')}
             className={`pb-3 text-sm font-medium transition-colors relative ${
               activeTab === 'summary'
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-teal-400'
+                : 'text-gray-400 hover:text-gray-300'
             }`}
           >
             Summary
             {activeTab === 'summary' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400" />
             )}
           </button>
           <button
             onClick={() => setActiveTab('individual')}
             className={`pb-3 text-sm font-medium transition-colors relative ${
               activeTab === 'individual'
-                ? 'text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-teal-400'
+                : 'text-gray-400 hover:text-gray-300'
             }`}
           >
             Individual
             {activeTab === 'individual' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-400" />
             )}
           </button>
         </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-4 gap-4 mb-6">
-          {/* Total Responses */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <p className="text-sm text-gray-500 mb-2">Total Responses</p>
-            <p className="text-3xl font-bold text-gray-900">{totalResponses}</p>
-            <p className="text-sm text-gray-400 mt-1">All time stats</p>
+          {/* System Status */}
+          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
+            <p className="text-sm text-gray-400 mb-2">System Status</p>
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-bold text-white">Operational</p>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            </div>
+            <p className="text-sm text-green-400 mt-1">All systems running</p>
           </div>
 
           {/* Assessments Today */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <p className="text-sm text-gray-500 mb-2">Assessments Today</p>
-            <p className="text-3xl font-bold text-gray-900">{todayResponses}</p>
-            <p className={`text-sm mt-1 ${todayChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
+            <p className="text-sm text-gray-400 mb-2">Assessments Today</p>
+            <p className="text-3xl font-bold text-white">{todayResponses}</p>
+            <p className={`text-sm mt-1 ${todayChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {todayChange >= 0 ? '+' : ''}{todayChange}% vs yesterday
             </p>
           </div>
 
           {/* Gaming Alerts */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <p className="text-sm text-gray-500 mb-2">Gaming Alerts</p>
-            <p className="text-3xl font-bold text-gray-900">{gamingAlerts}</p>
-            <p className="text-sm text-red-500 mt-1">{gamingAlerts} high risk flagged</p>
+          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
+            <p className="text-sm text-gray-400 mb-2">Gaming Alerts</p>
+            <p className="text-3xl font-bold text-white">{gamingAlerts}</p>
+            <p className="text-sm text-yellow-400 mt-1">{gamingAlerts} high risk flagged</p>
           </div>
 
-          {/* System Status */}
-          <div className="border border-gray-200 rounded-xl p-4">
-            <p className="text-sm text-gray-500 mb-2">System Status</p>
-            <p className="text-2xl font-bold text-gray-900">Operational</p>
-            <p className="text-sm text-green-600 mt-1">All systems running</p>
+          {/* Total Responses */}
+          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
+            <p className="text-sm text-gray-400 mb-2">Total Responses</p>
+            <p className="text-3xl font-bold text-white">{totalResponses}</p>
+            <p className="text-sm text-gray-400 mt-1">All time stats</p>
           </div>
         </div>
       </div>
@@ -727,78 +730,78 @@ export default function DashboardPage() {
       {activeTab === 'summary' ? (
         <>
           {/* Fairness Metrics */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Fairness Metrics</h3>
-            <p className="text-sm text-gray-500 mb-4">Comparing approval rates and scores between Male and Female applicants</p>
+          <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-2">Fairness Metrics Dashboard</h3>
+            <p className="text-sm text-gray-400 mb-4">Comparing approval rates and scores between Male and Female applicants</p>
             <div className="grid grid-cols-3 gap-4">
               {/* Statistical Parity Difference */}
-              <div className="border border-gray-200 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-2">Statistical Parity Difference</p>
+              <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
+                <p className="text-sm text-gray-300 mb-2">Statistical Parity Difference</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-3xl font-bold text-white">
                     {totalResponses > 0 ? statisticalParityDiff.toFixed(2) : 'N/A'}
                   </p>
                   {totalResponses > 0 && (
                     <span className={`flex items-center gap-1 px-2 py-1 text-sm rounded-full ${
                       spdCompliant
-                        ? 'bg-green-50 text-green-600'
-                        : 'bg-red-50 text-red-600'
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-red-500/20 text-red-400'
                     }`}>
                       {spdCompliant ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                       {spdCompliant ? 'Compliant' : 'Review'}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 mt-2">Threshold &le; 0.10</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-sm text-gray-400 mt-2">Threshold: ±0.10</p>
+                <p className="text-xs text-gray-500 mt-1">
                   Male: {(maleApprovalRate * 100).toFixed(0)}% | Female: {(femaleApprovalRate * 100).toFixed(0)}% approved
                 </p>
               </div>
 
               {/* Disparate Impact Ratio */}
-              <div className="border border-gray-200 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-2">Disparate Impact Ratio</p>
+              <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
+                <p className="text-sm text-gray-300 mb-2">Disparate Impact Ratio</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-3xl font-bold text-white">
                     {totalResponses > 0 ? dirLevel : 'N/A'}
                   </p>
                   {totalResponses > 0 && (
                     <span className={`flex items-center gap-1 px-2 py-1 text-sm rounded-full ${
                       dirCompliant
-                        ? 'bg-green-50 text-green-600'
-                        : 'bg-red-50 text-red-600'
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-red-500/20 text-red-400'
                     }`}>
                       {dirCompliant ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                       {dirCompliant ? 'Compliant' : 'Review'}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 mt-2">Threshold &ge; 0.80 (80% rule)</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-sm text-gray-400 mt-2">Threshold: 0.80-1.20</p>
+                <p className="text-xs text-gray-500 mt-1">
                   Ratio: {(disparateImpactRatio * 100).toFixed(0)}%
                 </p>
               </div>
 
               {/* Standardized Mean Difference */}
-              <div className="border border-gray-200 rounded-xl p-4">
-                <p className="text-sm text-gray-500 mb-2">Standardized Mean Difference</p>
+              <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
+                <p className="text-sm text-gray-300 mb-2">Standardized Mean Difference</p>
                 <div className="flex items-center justify-between">
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-3xl font-bold text-white">
                     {totalResponses > 0 ? smdLevel : 'N/A'}
                   </p>
                   {totalResponses > 0 && (
                     <span className={`flex items-center gap-1 px-2 py-1 text-sm rounded-full ${
                       !smdNeedsMonitoring
-                        ? 'bg-green-50 text-green-600'
-                        : 'bg-orange-50 text-orange-600'
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-yellow-500/20 text-yellow-400'
                     }`}>
                       {!smdNeedsMonitoring ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
                       {!smdNeedsMonitoring ? 'Good' : 'Monitor'}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 mt-2">Threshold &lt; 0.25</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-sm text-gray-400 mt-2">Threshold: &lt;0.25</p>
+                <p className="text-xs text-gray-500 mt-1">
                   SMD: {standardizedMeanDiff.toFixed(2)} | M avg: {maleMean.toFixed(1)} | F avg: {femaleMean.toFixed(1)}
                 </p>
               </div>
@@ -806,9 +809,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Model Performance */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Model Performance</h3>
-            <p className="text-sm text-gray-500 mb-4">Assessment quality and scoring distribution metrics</p>
+          <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-2">Model Performance</h3>
+            <p className="text-sm text-gray-400 mb-4">Assessment quality and scoring distribution metrics</p>
             <div className="space-y-4">
               {/* Scoring Coverage - % of applicants that received a score */}
               {(() => {
@@ -821,17 +824,17 @@ export default function DashboardPage() {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Scoring Coverage</span>
-                      <span className="text-sm text-gray-500">{scoredApplicants}/{totalResponses} scored</span>
+                      <span className="text-sm text-gray-300">Overall Accuracy</span>
+                      <span className="text-sm text-gray-400">{scoredApplicants}/{totalResponses} scored</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-green-500 rounded-full transition-all"
+                          className="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full transition-all"
                           style={{ width: `${scoringCoverage}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-gray-600 w-12">{scoringCoverage}%</span>
+                      <span className="text-sm font-medium text-white w-12">{scoringCoverage}%</span>
                     </div>
                   </div>
                 );
@@ -849,17 +852,17 @@ export default function DashboardPage() {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Eligibility Rate</span>
-                      <span className="text-sm text-gray-500">{eligibleCount}/{totalResponses} eligible</span>
+                      <span className="text-sm text-gray-300">Gaming Detection Rate</span>
+                      <span className="text-sm text-gray-400">{eligibleCount}/{totalResponses} eligible</span>
                     </div>
                     <div className="flex items-center gap-4">
-                      <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="flex-1 h-3 bg-slate-700 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-500 rounded-full transition-all"
+                          className="h-full bg-gradient-to-r from-purple-500 to-pink-400 rounded-full transition-all"
                           style={{ width: `${eligibilityRate}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium text-gray-600 w-12">{eligibilityRate}%</span>
+                      <span className="text-sm font-medium text-white w-12">{eligibilityRate}%</span>
                     </div>
                   </div>
                 );
@@ -868,12 +871,12 @@ export default function DashboardPage() {
           </div>
 
           {/* Demographic Distribution */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Demographic Distribution</h3>
+          <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-6">Demographic Distribution</h3>
             <div className="grid grid-cols-2 gap-8">
               {/* Age Distribution */}
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-4">Age Distribution</p>
+                <p className="text-sm font-medium text-gray-300 mb-4">Age Distribution</p>
                 <div className="flex items-center gap-6">
                   <PieChart
                     data={Object.entries(ageDistribution).map(([label, value]) => ({
@@ -899,15 +902,15 @@ export default function DashboardPage() {
 
               {/* Users by Location */}
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-4">Users by Location</p>
+                <p className="text-sm font-medium text-gray-300 mb-4">Users by Location</p>
                 <CountryBreakdown countries={sortedCountries} total={totalResponses} />
               </div>
             </div>
           </div>
 
           {/* Gender Breakdown */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Gender Breakdown</h3>
+          <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Gender Breakdown</h3>
             {(() => {
               const maleCount = genderDistribution['Male'] || 0;
               const femaleCount = genderDistribution['Female'] || 0;
@@ -972,11 +975,11 @@ export default function DashboardPage() {
           </div>
 
           {/* All Applicants Table */}
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <div className="bg-[#2a3849] rounded-xl border border-slate-700">
+            <div className="p-4 border-b border-slate-600 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <h3 className="font-semibold text-gray-900">All Applicants</h3>
-                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">
+                <h3 className="font-semibold text-white">All Applicants</h3>
+                <span className="px-2 py-1 bg-slate-700 text-gray-300 text-sm rounded-full">
                   {filteredApplicants.length} Total
                 </span>
               </div>
@@ -990,24 +993,24 @@ export default function DashboardPage() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+                  className="pl-10 pr-4 py-2 bg-[#334155] border border-slate-600 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 w-64"
                 />
               </div>
             </div>
 
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-[#334155] border-b border-slate-600">
                 <tr>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Applicant</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">CWI Score</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Risk</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Submitted</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Applicant</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">CWI Score</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Risk</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Submitted</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedApplicants.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-gray-500">
+                    <td colSpan={4} className="py-12 text-center text-gray-400">
                       {applicants.length === 0 ? 'No applicants yet' : 'No applicants match your search'}
                     </td>
                   </tr>
@@ -1020,7 +1023,7 @@ export default function DashboardPage() {
                     return (
                       <tr
                         key={applicant.id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                        className="border-b border-slate-700 hover:bg-[#334155] transition-colors cursor-pointer"
                         onClick={() => {
                           setSelectedApplicant(applicant);
                           setActiveTab('individual');
@@ -1028,19 +1031,19 @@ export default function DashboardPage() {
                       >
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                              <span className="text-blue-600 font-semibold text-sm">
+                            <div className="w-10 h-10 bg-teal-500/20 rounded-full flex items-center justify-center">
+                              <span className="text-teal-400 font-semibold text-sm">
                                 {getInitials(applicant.full_name)}
                               </span>
                             </div>
                             <div>
-                              <p className="font-medium text-gray-900">{applicant.full_name || 'Unknown'}</p>
-                              <p className="text-sm text-gray-500">{applicant.email || 'No email'}</p>
+                              <p className="font-medium text-white">{applicant.full_name || 'Unknown'}</p>
+                              <p className="text-sm text-gray-400">{applicant.email || 'No email'}</p>
                             </div>
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          <span className="font-medium text-gray-900">
+                          <span className="font-medium text-white">
                             {cwiScore !== null && cwiScore !== undefined ? cwiScore.toFixed(1) : 'N/A'}
                           </span>
                         </td>
@@ -1058,7 +1061,7 @@ export default function DashboardPage() {
                             <span className="text-gray-400">N/A</span>
                           )}
                         </td>
-                        <td className="py-4 px-4 text-gray-500">
+                        <td className="py-4 px-4 text-gray-400">
                           {new Date(applicant.submitted_at).toLocaleDateString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -1074,15 +1077,15 @@ export default function DashboardPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="p-4 border-t border-gray-200 flex items-center justify-between">
-                <p className="text-sm text-gray-500">
+              <div className="p-4 border-t border-slate-600 flex items-center justify-between">
+                <p className="text-sm text-gray-400">
                   Page {currentPage} of {totalPages}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    className="px-4 py-2 text-gray-300 bg-[#334155] border border-slate-600 rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     Previous
@@ -1090,7 +1093,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    className="px-4 py-2 text-gray-300 bg-[#334155] border border-slate-600 rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                   >
                     Next
                     <ChevronRight className="w-4 h-4" />

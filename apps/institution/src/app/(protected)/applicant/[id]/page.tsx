@@ -235,14 +235,14 @@ export default function ApplicantDetailPage() {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // Five Cs data from actual scores
+  // Five Cs data from actual scores - filter out null/undefined values
   const fiveCsData = score ? [
     { name: 'Character', score: score.character_score, color: 'bg-blue-500' },
     { name: 'Capacity', score: score.capacity_score, color: 'bg-green-500' },
     { name: 'Capital', score: score.capital_score, color: 'bg-purple-500' },
     { name: 'Consistency', score: score.consistency_score, color: 'bg-orange-400' },
     { name: 'Conditions', score: score.conditions_score, color: 'bg-gray-800' },
-  ] : [];
+  ].filter(item => item.score !== null && item.score !== undefined && !isNaN(item.score)) : [];
 
   // Get risk band color
   const getRiskBandColor = (band: string | null) => {
@@ -439,21 +439,17 @@ export default function ApplicantDetailPage() {
             )}
 
             {/* Score Cards */}
-            <div className="grid grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-gray-500 mb-1">CWI Score</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-bold text-gray-900">{score.cwi_0_100?.toFixed(1)}</span>
-                  <span className="text-gray-400">/100</span>
+                  <span className="text-4xl font-bold text-gray-900">
+                    {score.cwi_0_100 !== null && score.cwi_0_100 !== undefined ? score.cwi_0_100.toFixed(1) : 'N/A'}
+                  </span>
+                  {score.cwi_0_100 !== null && score.cwi_0_100 !== undefined && (
+                    <span className="text-gray-400">/100</span>
+                  )}
                 </div>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">CWI Raw</p>
-                <span className="text-4xl font-bold text-gray-900">{score.cwi_raw?.toFixed(2)}</span>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-1">CWI Normalized</p>
-                <span className="text-4xl font-bold text-gray-900">{score.cwi_normalized?.toFixed(2)}</span>
               </div>
               <div>
                 <p className="text-sm text-gray-500 mb-1">Eligibility</p>
@@ -492,7 +488,14 @@ export default function ApplicantDetailPage() {
         {/* Construct Scores - Only show if available */}
         {score?.construct_scores && Object.keys(score.construct_scores).length > 0 && (
           <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6">Construct Scores</h3>
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Construct Scores</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Underlying psychological and behavioral measures used to calculate the Five Cs
+                </p>
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Object.entries(score.construct_scores).map(([construct, value]) => (
@@ -504,6 +507,13 @@ export default function ApplicantDetailPage() {
                   )}
                 </div>
               ))}
+            </div>
+
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-xs text-blue-700">
+                <strong>Note:</strong> Construct scores are raw measurements (typically 0-5 scale) that feed into the Five Cs.
+                Z-scores show how this applicant compares to the population average (0 = average, positive = above average, negative = below average).
+              </p>
             </div>
           </div>
         )}

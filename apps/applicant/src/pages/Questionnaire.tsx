@@ -65,17 +65,30 @@ function generateSessionId(): string {
 }
 
 // Category Badge Component for 5C questions
-function CategoryBadge({ category }: { category: CreditCategory }) {
+function CategoryBadge({ category, description, isNeurocognitive }: { category: CreditCategory; description?: string; isNeurocognitive?: boolean }) {
   const colors = categoryColors[category];
+
+  // Neurocognitive questions get special formatting
+  if (isNeurocognitive && description) {
+    return (
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
+        Neurocognitive - {description}
+      </span>
+    );
+  }
+
+  // Regular CWI questions
+  const displayText = description ? `CWI - ${category} - ${description}` : `CWI - ${category}`;
+
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
-      {category}
+      {displayText}
     </span>
   );
 }
 
 // Section Badge Component
-function SectionBadge({ isDemographic, category }: { isDemographic: boolean; category?: CreditCategory }) {
+function SectionBadge({ isDemographic, category, description, isNeurocognitive }: { isDemographic: boolean; category?: CreditCategory; description?: string; isNeurocognitive?: boolean }) {
   if (isDemographic) {
     return (
       <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-semibold bg-pink-500 text-white">
@@ -85,7 +98,7 @@ function SectionBadge({ isDemographic, category }: { isDemographic: boolean; cat
   }
 
   if (category) {
-    return <CategoryBadge category={category} />;
+    return <CategoryBadge category={category} description={description} isNeurocognitive={isNeurocognitive} />;
   }
 
   return null;
@@ -311,6 +324,10 @@ export default function QuestionnairePage() {
   const totalQuestions = getTotalQuestions();
   const currentQuestion = allQuestions[currentQuestionIndex];
   const isDemographic = currentQuestion?.sectionId === 'section-a';
+  const isNeurocognitive = currentQuestion?.sectionId === 'section-i';
+
+  // Check if current question is answered
+  const isCurrentQuestionAnswered = !!(formData[currentQuestion?.id || ''] && formData[currentQuestion?.id || ''].trim() !== '');
 
   // Calculate progress
   const answeredQuestions = Object.keys(formData).length;
@@ -400,6 +417,16 @@ export default function QuestionnairePage() {
   };
 
   const handleNext = () => {
+    // Check if current question is answered
+    const currentAnswer = formData[currentQuestion?.id || ''];
+    if (!currentAnswer || currentAnswer.trim() === '') {
+      setError('Please answer this question before proceeding.');
+      return;
+    }
+
+    // Clear error if validation passes
+    setError(null);
+
     if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
@@ -583,21 +610,21 @@ export default function QuestionnairePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a2332] via-[#1e2a3d] to-[#0f1419] flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100">
+      <header className="bg-[#1e2a3d]/50 border-b border-slate-700/50 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-teal-500 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-xs">FP</span>
             </div>
-            <span className="text-lg font-bold text-gray-900">FINPSYCH</span>
+            <span className="text-lg font-bold text-white">FINPSYCH</span>
           </div>
         </div>
       </header>
 
-      {/* Teal Banner */}
-      <div className="bg-teal-500 text-white">
+      {/* Progress Bar Banner with Gradient */}
+      <div className="bg-gradient-to-r from-teal-500 via-blue-600 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-lg font-semibold">Credit Worthiness Assessment</h1>
           <button
@@ -619,11 +646,11 @@ export default function QuestionnairePage() {
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700">Overall Progress</span>
-                <span className="text-sm font-semibold text-teal-500">{progress}% Complete</span>
+                <span className="text-sm font-semibold text-teal-600">{progress}% Complete</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2">
                 <div
-                  className="bg-teal-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-teal-500 via-blue-600 to-purple-600 h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -640,7 +667,7 @@ export default function QuestionnairePage() {
             <div className="p-6">
               {/* Section Badge */}
               <div className="mb-6">
-                <SectionBadge isDemographic={isDemographic} category={currentQuestion.category} />
+                <SectionBadge isDemographic={isDemographic} category={currentQuestion.category} description={currentQuestion.categoryDescription} isNeurocognitive={isNeurocognitive} />
               </div>
 
               {/* Question */}
@@ -674,8 +701,8 @@ export default function QuestionnairePage() {
               </button>
               <button
                 onClick={handleNext}
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-300 text-white font-medium rounded-lg transition-colors"
+                disabled={isSubmitting || !isCurrentQuestionAnswered}
+                className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all"
               >
                 {isSubmitting ? 'Submitting...' : currentQuestionIndex === totalQuestions - 1 ? 'Submit' : 'Next'}
               </button>

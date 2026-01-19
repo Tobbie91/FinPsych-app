@@ -1,6 +1,6 @@
 /**
  * CWI Scoring Engine
- * Version: 1.0.0
+ * Version: 1.1.0 (Added neurocognitive question scoring)
  *
  * Execution Order (DO NOT CHANGE):
  * 1. Raw Responses → Question Scoring
@@ -144,6 +144,51 @@ function scoreCrisisRanking(value: string): number {
 }
 
 /**
+ * Score the cognitive reflection test question (q62: Bat & Ball problem)
+ * Correct answer = ₦50, Intuitive (incorrect) answer = ₦100
+ */
+function scoreCognitiveReflection(value: string): number {
+  // Clean the input: remove currency symbols, commas, spaces
+  const cleaned = value.trim().toLowerCase().replace(/[₦,\s]/g, '');
+  const numericValue = parseFloat(cleaned);
+
+  // Correct answer is 50 (ball costs ₦50, bat costs ₦1050, total ₦1100)
+  if (numericValue === 50) {
+    return 1; // Correct - shows cognitive reflection
+  }
+  return 0; // Incorrect (including common wrong answer of 100)
+}
+
+/**
+ * Score the delay discounting question (q63)
+ * Prefer delayed larger reward = better self-control
+ */
+function scoreDelayDiscounting(value: string): number {
+  // Check if the answer includes ₦7,500 (the delayed option)
+  if (value.includes('₦7,500') || value.includes('7500') || value.toLowerCase().includes('one month')) {
+    return 1; // Prefers delayed larger reward
+  }
+  return 0; // Prefers immediate smaller reward
+}
+
+/**
+ * Score financial numeracy questions (q64, q65)
+ */
+function scoreFinancialNumeracy(questionId: string, value: string): number {
+  if (questionId === 'q64') {
+    // Change calculation: ₦2000 - (₦500 + ₦800) = ₦700
+    return value.includes('₦700') || value.includes('700') ? 1 : 0;
+  }
+
+  if (questionId === 'q65') {
+    // Lender comparison: Lender A has less total interest (₦5,000 vs ₦10,000)
+    return value.includes('Lender A') ? 1 : 0;
+  }
+
+  return 0;
+}
+
+/**
  * Score a single question based on its type
  */
 function scoreQuestion(questionId: string, value: string): number {
@@ -165,6 +210,19 @@ function scoreQuestion(questionId: string, value: string): number {
 
   if (questionId === 'q16') {
     return scoreCrisisRanking(value);
+  }
+
+  // Neurocognitive questions
+  if (questionId === 'q62') {
+    return scoreCognitiveReflection(value);
+  }
+
+  if (questionId === 'q63') {
+    return scoreDelayDiscounting(value);
+  }
+
+  if (questionId === 'q64' || questionId === 'q65') {
+    return scoreFinancialNumeracy(questionId, value);
   }
 
   // Default: Likert scale

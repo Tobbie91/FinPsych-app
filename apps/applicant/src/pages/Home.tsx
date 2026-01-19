@@ -1,9 +1,10 @@
 import { ClipboardList, Clock, Shield, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ThemeToggle } from '@fintech/ui';
 
 export default function Home() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Header */}
@@ -103,7 +104,11 @@ export default function Home() {
         {/* CTA Button */}
         <div className="flex justify-center">
           <button
-            onClick={() => navigate('/questionnaire')}
+            onClick={() => {
+              const institutionId = searchParams.get('institution');
+              const queryString = institutionId ? `?institution=${institutionId}` : '';
+              navigate(`/questionnaire${queryString}`);
+            }}
             className="bg-teal-600 hover:bg-teal-700 text-white font-semibold px-10 py-4 rounded-xl flex items-center gap-3 transition-all shadow-lg hover:shadow-xl hover:scale-[1.02]"
           >
             Start Assessment

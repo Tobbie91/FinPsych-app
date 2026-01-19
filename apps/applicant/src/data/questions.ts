@@ -17,6 +17,9 @@ export type Construct =
   | 'locus_of_control'
   | 'social_support'
   | 'time_orientation'
+  | 'cognitive_reflection'
+  | 'delay_discounting'
+  | 'financial_numeracy'
   | 'demographic';
 
 export interface Question {
@@ -74,7 +77,7 @@ export const sections: Section[] = [
         number: 3,
         text: 'Country of residence',
         type: 'select',
-        options: ['Nigeria', 'United States', 'United Kingdom', 'Canada', 'Ghana', 'South Africa', 'Kenya', 'Other'],
+        options: ['Nigeria', 'United Kingdom', 'United States'],
         isDemographic: true,
         construct: 'demographic',
       },
@@ -538,6 +541,62 @@ export const sections: Section[] = [
         category: 'Capacity',
         construct: 'time_orientation',
         reverseScored: false,
+        fiveC: 'Capacity',
+      },
+    ],
+  },
+  // Section I: Neurocognitive Assessment
+  {
+    id: 'section-i',
+    title: 'Section I',
+    subtitle: 'Neurocognitive Assessment',
+    questions: [
+      {
+        id: 'q62',
+        number: 75,
+        text: 'A bat and a ball cost ₦1,100 in total. The bat costs ₦1,000 more than the ball. How much does the ball cost?',
+        type: 'select',
+        options: ['₦50', '₦100', '₦550'],
+        category: 'Character',
+        categoryDescription: 'CRT',
+        construct: 'cognitive_reflection',
+        fiveC: 'Character',
+      },
+      {
+        id: 'q63',
+        number: 76,
+        text: 'Would you prefer:',
+        type: 'select',
+        options: ['A: ₦5,000 today', 'B: ₦7,500 in one month'],
+        category: 'Character',
+        categoryDescription: 'Delay Discounting',
+        construct: 'delay_discounting',
+        fiveC: 'Character',
+      },
+      {
+        id: 'q64',
+        number: 77,
+        text: 'You buy bread for ₦500 and fish for ₦800. You pay with ₦2,000. How much change should you get?',
+        type: 'select',
+        options: ['₦700', '₦1,200', '₦1,500'],
+        category: 'Capacity',
+        categoryDescription: 'Financial Numeracy',
+        construct: 'financial_numeracy',
+        fiveC: 'Capacity',
+      },
+      {
+        id: 'q65',
+        number: 78,
+        text: 'You need to borrow ₦50,000. Lender A: Pay back ₦55,000 after 1 month. Lender B: Pay back ₦60,000 after 3 months. Which costs you LESS in total interest?',
+        type: 'select',
+        options: [
+          'Lender A (₦5,000 interest)',
+          'Lender B (₦10,000 interest)',
+          'Same total interest',
+        ],
+        category: 'Capacity',
+        categoryDescription: 'Financial Numeracy',
+        construct: 'financial_numeracy',
         fiveC: 'Capacity',
       },
     ],

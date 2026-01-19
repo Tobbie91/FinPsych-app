@@ -1,6 +1,6 @@
 /**
  * CWI Scoring Engine Constants
- * Version: 1.0.0
+ * Version: 1.1.0 (Added neurocognitive constructs)
  *
  * IMPORTANT: These are calibrated constants from offline PCA analysis.
  * Do NOT modify without proper recalibration.
@@ -9,17 +9,20 @@
 // -----------------------------------------------------------------------------
 // PCA WEIGHTS (Construct Level)
 // Source: Offline PCA calibration - absolute PC1 loadings normalized
-// Sum = 1.00
+// Sum = 1.00 (Rebalanced to include neurocognitive constructs)
 // -----------------------------------------------------------------------------
 export const PCA_WEIGHTS: Record<string, number> = {
-  financial_behaviour: 0.24,
-  payment_history: 0.18, // payment_discipline in spec
-  self_control: 0.15,
-  conscientiousness: 0.14,
-  emotional_stability: 0.10,
-  risk_preference: 0.08,
-  locus_of_control: 0.06,
-  social_support: 0.05,
+  financial_behaviour: 0.20,
+  payment_history: 0.15,
+  self_control: 0.12,
+  conscientiousness: 0.11,
+  cognitive_reflection: 0.08, // NEW: Bat & ball problem
+  emotional_stability: 0.08,
+  risk_preference: 0.07,
+  financial_numeracy: 0.06, // NEW: Financial calculation questions
+  locus_of_control: 0.05,
+  delay_discounting: 0.04, // NEW: Delay preference
+  social_support: 0.04,
 };
 
 // -----------------------------------------------------------------------------
@@ -40,6 +43,9 @@ export const GLOBAL_STATS: Record<string, { mean: number; std: number }> = {
   agreeableness: { mean: 3.55, std: 0.68 },
   openness: { mean: 3.42, std: 0.75 },
   extraversion: { mean: 3.15, std: 0.89 },
+  cognitive_reflection: { mean: 0.35, std: 0.48 }, // Binary: correct=1, incorrect=0
+  delay_discounting: { mean: 0.45, std: 0.50 }, // Binary: delayed preference=1, immediate=0
+  financial_numeracy: { mean: 0.68, std: 0.38 }, // Proportion correct (0-1)
 };
 
 // -----------------------------------------------------------------------------
@@ -62,8 +68,8 @@ export const COUNTRY_STATS: Record<string, { mean: number; std: number }> = {
 // Maps psychological constructs to the 5Cs of Credit
 // -----------------------------------------------------------------------------
 export const FIVE_C_MAP: Record<string, string[]> = {
-  character: ['financial_behaviour', 'payment_history', 'self_control', 'conscientiousness'],
-  capacity: ['emergency_preparedness', 'time_orientation'],
+  character: ['financial_behaviour', 'payment_history', 'self_control', 'conscientiousness', 'cognitive_reflection', 'delay_discounting'],
+  capacity: ['emergency_preparedness', 'time_orientation', 'financial_numeracy'],
   capital: ['financial_behaviour', 'social_support'], // savings_habit approximated via financial_behaviour
   consistency: ['conscientiousness', 'emotional_stability'],
   conditions: ['risk_preference', 'locus_of_control'],
@@ -181,6 +187,11 @@ export const QUESTION_CONSTRUCT_MAP: Record<string, string> = {
   // Time Orientation (q60-q61)
   q60: 'time_orientation',
   q61: 'time_orientation',
+  // Neurocognitive Questions (q62-q65)
+  q62: 'cognitive_reflection', // Bat & ball problem
+  q63: 'delay_discounting', // Delay preference
+  q64: 'financial_numeracy', // Change calculation
+  q65: 'financial_numeracy', // Lender comparison
 };
 
 // -----------------------------------------------------------------------------
@@ -241,4 +252,4 @@ export const SOCIAL_SUPPORT_SCORES: Record<string, number> = {
 // -----------------------------------------------------------------------------
 // MODEL VERSION
 // -----------------------------------------------------------------------------
-export const MODEL_VERSION = '1.0.0';
+export const MODEL_VERSION = '1.1.0';

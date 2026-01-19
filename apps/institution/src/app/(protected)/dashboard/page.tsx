@@ -145,11 +145,11 @@ export default function DashboardPage() {
     notEligible: applicants.filter(a => !isEligible(a)).length,
   };
 
-  // Generate questionnaire link
+  // Generate questionnaire link (points to home page, which then navigates to questionnaire)
   const getQuestionnaireLink = () => {
     const baseUrl = process.env.NEXT_PUBLIC_APPLICANT_URL ||
       (typeof window !== 'undefined' ? window.location.origin.replace('3001', '3000') : '');
-    return institutionId ? `${baseUrl}/questionnaire?institution=${institutionId}` : '';
+    return institutionId ? `${baseUrl}/?institution=${institutionId}` : '';
   };
   const questionnaireLink = getQuestionnaireLink();
 
@@ -227,8 +227,8 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    // Redirect to admin landing page
+    window.location.href = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3002';
   };
 
   if (isLoading) {

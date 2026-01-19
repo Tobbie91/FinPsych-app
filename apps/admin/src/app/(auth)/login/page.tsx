@@ -59,21 +59,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md">
+    <div className="bg-[#1e2a3d] rounded-2xl shadow-2xl border border-slate-700 p-8 w-full max-w-md">
       {/* Header */}
       <div className="text-center mb-8">
-        <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-          <LogIn className="w-7 h-7 text-blue-600" />
+        <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <LogIn className="w-7 h-7 text-white" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back!</h1>
-        <p className="text-gray-500">Welcome back! Please enter your details to login to Admin</p>
+        <h1 className="text-2xl font-bold text-white mb-2">Welcome Back!</h1>
+        <p className="text-gray-300">Welcome back! Please enter your details to login to Admin</p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Email */}
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1.5">
             Email Address
           </label>
           <input
@@ -83,13 +83,13 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Enter your email"
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 bg-[#2a3849] border border-slate-600 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
           />
         </div>
 
         {/* Password */}
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1.5">
             Password
           </label>
           <div className="relative">
@@ -100,12 +100,12 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+              className="w-full px-4 py-3 pr-12 bg-[#2a3849] border border-slate-600 text-white placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
@@ -114,14 +114,14 @@ export default function LoginPage() {
 
         {/* Forgot Password Link */}
         <div className="text-right">
-          <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          <Link href="/forgot-password" className="text-sm text-teal-400 hover:text-teal-300 font-medium">
             Forgot password?
           </Link>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+          <div className="p-3 bg-red-900/30 border border-red-500/50 rounded-xl text-red-400 text-sm">
             {error}
           </div>
         )}
@@ -130,7 +130,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors shadow-sm hover:shadow-md"
+          className="w-full py-3.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 disabled:opacity-50 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md"
         >
           {isLoading ? 'Signing in...' : 'Sign In'}
         </button>

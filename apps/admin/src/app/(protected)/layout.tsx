@@ -16,7 +16,7 @@ import { ThemeToggle } from '@fintech/ui';
 
 /**
  * Protected layout for authenticated pages.
- * Dashboard layout with sidebar navigation - Blue theme.
+ * Dashboard layout with sidebar navigation - FinPsych Score dark theme.
  */
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -52,7 +52,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push('/'); // Redirect to landing page with 3 apps
     router.refresh();
   };
 
@@ -61,18 +61,17 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a2332] via-[#1e2a3d] to-[#0f1419] flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+      <aside className="w-64 bg-[#1e2a3d]/50 border-r border-slate-700/50 backdrop-blur-sm flex flex-col">
         {/* Logo */}
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">FP</span>
             </div>
-            <span className="text-xl font-bold text-gray-900 dark:text-white">FINPSYCH</span>
+            <span className="text-xl font-bold text-white">FINPSYCH</span>
           </div>
-          <ThemeToggle />
         </div>
 
         {/* Navigation */}
@@ -86,8 +85,8 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
                 href={item.href}
                 className={`flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white'
+                    : 'text-gray-300 hover:bg-[#2a3849] hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -100,25 +99,25 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
         </nav>
 
         {/* User section */}
-        <div className="p-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="p-4 border-t border-slate-700/50">
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl">
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-              <span className="text-blue-700 dark:text-blue-300 font-semibold">
+            <div className="w-10 h-10 bg-teal-500/20 rounded-full flex items-center justify-center">
+              <span className="text-teal-400 font-semibold">
                 {user?.name ? getInitials(user.name) : 'AD'}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              <p className="text-sm font-medium text-white truncate">
                 {user?.name || 'Admin User'}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-xs text-gray-400 truncate">
                 {user?.email || 'admin@finpsych.com'}
               </p>
             </div>
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+              className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
               title="Logout"
             >
               {isLoggingOut ? (

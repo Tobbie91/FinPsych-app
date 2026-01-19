@@ -40,7 +40,7 @@ export default function CompaniesPage() {
       setIsLoading(true);
 
       try {
-        // First, fetch all institutions from the institutions table
+        // Admins can see ALL institutions
         const { data: institutionsData, error: instError } = await supabase
           .from('institutions')
           .select('*')
@@ -50,7 +50,7 @@ export default function CompaniesPage() {
           console.error('Error fetching institutions:', instError);
         }
 
-        // Then, get applicant counts per institution
+        // Get applicant counts for ALL institutions
         const { data: applicantsByInstitution, error: appError } = await supabase
           .from('applicants')
           .select('institution_id, submitted_at')
