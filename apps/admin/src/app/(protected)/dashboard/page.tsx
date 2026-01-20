@@ -11,6 +11,7 @@ import {
   CheckCircle,
   AlertTriangle,
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 
@@ -363,6 +364,7 @@ export default function DashboardPage() {
   const [responses, setResponses] = useState<Record<string, Response[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingResponses, setIsLoadingResponses] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
@@ -383,11 +385,12 @@ export default function DashboardPage() {
         const { data: applicantsData, error: applicantsError } = await supabase
           .from('applicants')
           .select('*')
-          .order('submitted_at', { ascending: false });
+          .order('submitted_at', { ascending: false});
 
         if (applicantsError) {
           console.error('Error fetching applicants:', applicantsError);
         } else {
+          console.log('Fetched applicants:', applicantsData?.length || 0);
           setApplicants(applicantsData || []);
           if (applicantsData && applicantsData.length > 0) {
             setSelectedApplicant(applicantsData[0]);
@@ -420,6 +423,24 @@ export default function DashboardPage() {
     };
 
     fetchData();
+
+    // Set up real-time subscription for new applicants
+    const channel = supabase
+      .channel('applicants-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'applicants' },
+        (payload) => {
+          console.log('New applicant detected:', payload.new);
+          // Refresh the data when a new applicant is added
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -615,6 +636,48 @@ export default function DashboardPage() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const { data: applicantsData, error: applicantsError } = await supabase
+        .from('applicants')
+        .select('*')
+        .order('submitted_at', { ascending: false });
+
+      if (applicantsError) {
+        console.error('Error fetching applicants:', applicantsError);
+      } else {
+        console.log('Refreshed - fetched applicants:', applicantsData?.length || 0);
+        setApplicants(applicantsData || []);
+        if (applicantsData && applicantsData.length > 0 && !selectedApplicant) {
+          setSelectedApplicant(applicantsData[0]);
+        }
+      }
+
+      if (applicantsData && applicantsData.length > 0) {
+        const applicantIds = applicantsData.map(a => a.id);
+        const { data: scoresData, error: scoresError } = await supabase
+          .from('scores')
+          .select('*')
+          .in('applicant_id', applicantIds);
+
+        if (scoresError) {
+          console.error('Error fetching scores:', scoresError);
+        } else if (scoresData) {
+          const scoresMap: Record<string, Score> = {};
+          scoresData.forEach(score => {
+            scoresMap[score.applicant_id] = score;
+          });
+          setScores(scoresMap);
+        }
+      }
+    } catch (err) {
+      console.error('Refresh error:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   // Age distribution colors - vibrant, distinct colors
   const ageColors: Record<string, string> = {
     '18-23': '#ec4899',        // Pink
@@ -644,13 +707,23 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">Responses overview</h1>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors"
-        >
-          <Download className="w-4 h-4" />
-          Export
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </button>
+        </div>
       </div>
 
       {/* Detailed Assessment Breakdown Card */}
