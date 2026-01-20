@@ -56,7 +56,8 @@ export default function SubmittedPage() {
             <button
               onClick={() => {
                 // Redirect to admin landing page
-                window.location.href = 'http://localhost:3002';
+                const adminUrl = import.meta.env.VITE_ADMIN_URL || 'https://finpsych-admin.netlify.app';
+                window.location.href = adminUrl;
               }}
               className="w-full py-3 bg-teal-500 hover:bg-teal-600 text-white font-medium rounded-xl transition-colors"
             >

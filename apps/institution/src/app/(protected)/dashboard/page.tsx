@@ -228,7 +228,7 @@ export default function DashboardPage() {
     setIsLoggingOut(true);
     await supabase.auth.signOut();
     // Redirect to admin landing page
-    window.location.href = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3002';
+    window.location.href = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://finpsych-admin.netlify.app';
   };
 
   if (isLoading) {
