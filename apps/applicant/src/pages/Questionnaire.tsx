@@ -10,6 +10,7 @@ import {
   categoryColors,
 } from '../data/questions';
 import { calculateCWI, type RawResponses } from '@fintech/scoring';
+import { validateResponses, type ValidationResult } from '@fintech/validation';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -430,11 +431,21 @@ export default function QuestionnairePage() {
     if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
-      handleSubmit();
+      // Last question - run validation before submission
+      runValidationAndSubmit();
     }
   };
 
-  const handleSubmit = async () => {
+  const runValidationAndSubmit = () => {
+    // Run consistency checks
+    const validation = validateResponses(formData);
+
+    // Proceed with submission regardless of validation severity
+    // Validation results will be stored in the database for analysis
+    handleSubmit(validation);
+  };
+
+  const handleSubmit = async (validation: ValidationResult) => {
     setIsSubmitting(true);
     setError(null);
 
@@ -462,21 +473,21 @@ export default function QuestionnairePage() {
 
     if (supabase) {
       try {
-        // Extract demographics
+        // Extract demographics - Updated to match new question IDs (dem1-dem11)
         const demographics = {
           full_name: formData['demo1'],
           email: formData['demo2'],
-          country: formData['demo3'],
-          age_range: formData['demo4'],
-          gender: formData['demo5'],
-          marital_status: formData['demo6'],
-          education: formData['demo7'],
-          employment_status: formData['demo8'],
-          income_range: formData['demo9'],
-          dependents: formData['demo10'],
-          has_bank_account: formData['demo11'],
-          loan_history: formData['demo12'],
-          residency_status: formData['demo13'],
+          age_range: formData['dem1'],        // DEM1: Age
+          gender: formData['dem2'],           // DEM2: Gender
+          education: formData['dem3'],        // DEM3: Education
+          country: formData['dem4'],          // DEM4: Location
+          employment_status: formData['dem5'], // DEM5: Employment
+          income_range: formData['dem6'],     // DEM6: Income
+          marital_status: formData['dem7'],   // DEM7: Marital Status
+          dependents: formData['dem8'],       // DEM8: Dependents
+          residency_status: formData['dem9'], // DEM9: Housing
+          has_bank_account: formData['dem10'], // DEM10: Bank Account
+          loan_history: formData['dem11'],    // DEM11: Loan History
         };
 
         // Insert applicant record
@@ -496,6 +507,12 @@ export default function QuestionnairePage() {
             started_at: new Date(finalSessionMetadata.startTime).toISOString(),
             submitted_at: new Date().toISOString(),
             total_time_ms: finalSessionMetadata.totalTimeMs,
+            validation_result: validation,
+            quality_score: validation.consistencyScore,
+            response_metadata: {
+              session: finalSessionMetadata,
+              questions: questionMetadata,
+            },
           });
 
         if (applicantError) throw applicantError;
@@ -504,7 +521,7 @@ export default function QuestionnairePage() {
 
         // Insert responses
         const responsesArray = Object.entries(formData)
-          .filter(([key]) => !key.startsWith('demo')) // Exclude demographics
+          .filter(([key]) => !key.startsWith('demo') && !key.startsWith('dem')) // Exclude demographics (demo1, demo2, dem1-dem11)
           .map(([questionId, answer]) => ({
             applicant_id: applicantData.id,
             question_id: questionId,
@@ -521,7 +538,7 @@ export default function QuestionnairePage() {
         }
 
         // Run CWI scoring engine
-        const country = formData['demo3'] || 'Other';
+        const country = formData['dem4'] || 'Other';
         const scoringResult = calculateCWI(formData as RawResponses, country);
 
         // Insert score record

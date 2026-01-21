@@ -17,20 +17,20 @@ import { createBrowserClient } from '@supabase/ssr';
 
 // Question mapping for display
 const questionTexts: Record<string, string> = {
-  // Demographics
+  // Demographics - NEW question IDs (dem1-dem11)
   demo1: 'What is your full name?',
   demo2: 'Kindly enter your email address',
-  demo3: 'Country of residence',
-  demo4: 'How old are you?',
-  demo5: 'Gender',
-  demo6: 'Marital Status',
-  demo7: 'Highest Level of Education',
-  demo8: 'Employment Status',
-  demo9: 'Monthly Income Range',
-  demo10: 'Number of People Who Depend on Your Income',
-  demo11: 'Do you have an active bank account?',
-  demo12: 'Have you taken a loan before?',
-  demo13: 'Residency Status',
+  dem1: 'What is your age?',
+  dem2: 'What is your gender?',
+  dem3: 'What is your highest level of education?',
+  dem4: 'Location',
+  dem5: 'What is your employment status?',
+  dem6: 'What is your approximate monthly income?',
+  dem7: 'What is your marital status?',
+  dem8: 'How many people depend on your income?',
+  dem9: 'What is your current housing situation?',
+  dem10: 'Do you have an active bank account?',
+  dem11: 'Have you taken a loan before?',
   // Section B - Financial Behaviour (Q1-Q15)
   q1: 'In the past 12 months, how often did you miss RENT payments?',
   q2: 'In the past 12 months, how often did you miss UTILITY payments?',
@@ -129,6 +129,22 @@ interface Applicant {
   submitted_at: string;
   institution_id: string;
   device_info?: DeviceInfo;
+  quality_score?: number | null;
+  validation_result?: {
+    totalChecks: number;
+    inconsistenciesDetected: number;
+    severityLevel: 'MINOR' | 'MODERATE' | 'SEVERE';
+    consistencyScore: number;
+    flags: Array<{
+      checkId: string;
+      checkName: string;
+      description: string;
+      severity: string;
+      questions: string[];
+    }>;
+    recommendation: 'PROCEED' | 'REVIEW' | 'RETAKE';
+  } | null;
+  response_metadata?: any;
 }
 
 interface Score {
@@ -277,28 +293,11 @@ function PieChart({
   );
 }
 
-// Country flag emoji mapping
+// Country flag emoji mapping - Only Nigeria, Glasgow (UK), and USA
 const countryFlags: Record<string, string> = {
   'Nigeria': '🇳🇬',
-  'United States': '🇺🇸',
+  'Glasgow': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',  // Scotland flag
   'USA': '🇺🇸',
-  'United Kingdom': '🇬🇧',
-  'UK': '🇬🇧',
-  'Canada': '🇨🇦',
-  'Ghana': '🇬🇭',
-  'South Africa': '🇿🇦',
-  'Kenya': '🇰🇪',
-  'India': '🇮🇳',
-  'Germany': '🇩🇪',
-  'France': '🇫🇷',
-  'Australia': '🇦🇺',
-  'Brazil': '🇧🇷',
-  'Mexico': '🇲🇽',
-  'Japan': '🇯🇵',
-  'China': '🇨🇳',
-  'Singapore': '🇸🇬',
-  'UAE': '🇦🇪',
-  'Unknown': '🌍',
 };
 
 // Country Breakdown Component
@@ -317,13 +316,14 @@ function CountryBreakdown({
     );
   }
 
-  // Get top 5 countries
-  const topCountries = countries.slice(0, 5);
-  const maxCount = topCountries[0]?.[1] || 1;
+  // Filter to only show Nigeria, Glasgow, USA
+  const allowedCountries = ['Nigeria', 'Glasgow', 'USA'];
+  const filteredCountries = countries.filter(([country]) => allowedCountries.includes(country));
+  const maxCount = filteredCountries[0]?.[1] || 1;
 
   return (
     <div className="w-full space-y-3">
-      {topCountries.map(([country, count], index) => {
+      {filteredCountries.map(([country, count], index) => {
         const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
         const barWidth = (count / maxCount) * 100;
         const flag = countryFlags[country] || '🌍';
@@ -333,10 +333,10 @@ function CountryBreakdown({
             <span className="text-lg">{flag}</span>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">{country}</span>
-                <span className="text-sm text-gray-500">{count} ({percentage}%)</span>
+                <span className="text-sm font-medium text-gray-300">{country}</span>
+                <span className="text-sm text-gray-400">{count} ({percentage}%)</span>
               </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{
@@ -349,11 +349,6 @@ function CountryBreakdown({
           </div>
         );
       })}
-      {countries.length > 5 && (
-        <p className="text-xs text-gray-400 text-center pt-2">
-          +{countries.length - 5} more countries
-        </p>
-      )}
     </div>
   );
 }
@@ -503,12 +498,25 @@ export default function DashboardPage() {
     return risk === 'HIGH' || risk === 'VERY_HIGH';
   }).length;
 
-  // Age distribution
-  const ageDistribution = applicants.reduce((acc, a) => {
-    const age = a.age_range || 'Unknown';
-    acc[age] = (acc[age] || 0) + 1;
+  // Age distribution - Group text ages into bins
+  const ageBins = applicants.reduce((acc, a) => {
+    const age = parseInt(a.age_range);
+    if (isNaN(age)) return acc;
+
+    if (age >= 18 && age <= 25) acc['18-25']++;
+    else if (age >= 26 && age <= 35) acc['26-35']++;
+    else if (age >= 36 && age <= 45) acc['36-45']++;
+    else if (age >= 46 && age <= 60) acc['46-60']++;
+    else if (age > 60) acc['60+']++;
+
     return acc;
-  }, {} as Record<string, number>);
+  }, {
+    '18-25': 0,
+    '26-35': 0,
+    '36-45': 0,
+    '46-60': 0,
+    '60+': 0,
+  } as Record<string, number>);
 
   // Gender distribution
   const genderDistribution = applicants.reduce((acc, a) => {
@@ -678,17 +686,13 @@ export default function DashboardPage() {
     }
   };
 
-  // Age distribution colors - vibrant, distinct colors
-  const ageColors: Record<string, string> = {
-    '18-23': '#ec4899',        // Pink
-    '18 - 23 yrs': '#ec4899',  // Pink
-    '24-29': '#8b5cf6',        // Purple
-    '24 - 29yrs': '#8b5cf6',   // Purple
-    '30-35': '#3b82f6',        // Blue
-    '30 - 35yrs': '#3b82f6',   // Blue
-    '36-40': '#14b8a6',        // Teal
-    '40+': '#f59e0b',          // Amber
-    '40 yrs and above': '#f59e0b', // Amber
+  // Age bin colors for histogram
+  const ageBinColors: Record<string, string> = {
+    '18-25': '#ec4899',  // Pink
+    '26-35': '#8b5cf6',  // Purple
+    '36-45': '#3b82f6',  // Blue
+    '46-60': '#14b8a6',  // Teal
+    '60+': '#f59e0b',    // Amber
   };
 
   if (isLoading) {
@@ -765,37 +769,37 @@ export default function DashboardPage() {
 
         {/* Stats Row */}
         <div className="grid grid-cols-4 gap-4 mb-6">
-          {/* System Status */}
-          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
-            <p className="text-sm text-gray-400 mb-2">System Status</p>
-            <div className="flex items-center gap-2">
-              <p className="text-2xl font-bold text-white">Operational</p>
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            </div>
-            <p className="text-sm text-green-400 mt-1">All systems running</p>
+          {/* Total Responses */}
+          <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl p-6 text-white shadow-lg">
+            <p className="text-sm opacity-90 mb-2">Total Responses</p>
+            <p className="text-4xl font-bold">{totalResponses}</p>
+            <p className="text-sm opacity-80 mt-1">All time</p>
           </div>
 
           {/* Assessments Today */}
-          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
-            <p className="text-sm text-gray-400 mb-2">Assessments Today</p>
-            <p className="text-3xl font-bold text-white">{todayResponses}</p>
-            <p className={`text-sm mt-1 ${todayChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
+            <p className="text-sm opacity-90 mb-2">Assessments Today</p>
+            <p className="text-4xl font-bold">{todayResponses}</p>
+            <p className={`text-sm opacity-90 mt-1`}>
               {todayChange >= 0 ? '+' : ''}{todayChange}% vs yesterday
             </p>
           </div>
 
           {/* Gaming Alerts */}
-          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
-            <p className="text-sm text-gray-400 mb-2">Gaming Alerts</p>
-            <p className="text-3xl font-bold text-white">{gamingAlerts}</p>
-            <p className="text-sm text-yellow-400 mt-1">{gamingAlerts} high risk flagged</p>
+          <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl p-6 text-white shadow-lg">
+            <p className="text-sm opacity-90 mb-2">Gaming Alerts</p>
+            <p className="text-4xl font-bold">{gamingAlerts}</p>
+            <p className="text-sm opacity-90 mt-1">{gamingAlerts} flagged</p>
           </div>
 
-          {/* Total Responses */}
-          <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
-            <p className="text-sm text-gray-400 mb-2">Total Responses</p>
-            <p className="text-3xl font-bold text-white">{totalResponses}</p>
-            <p className="text-sm text-gray-400 mt-1">All time stats</p>
+          {/* System Status */}
+          <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white shadow-lg">
+            <p className="text-sm opacity-90 mb-2">System Status</p>
+            <div className="flex items-center gap-2">
+              <p className="text-3xl font-bold">Operational</p>
+              <div className="w-3 h-3 bg-white/90 rounded-full"></div>
+            </div>
+            <p className="text-sm opacity-90 mt-1">All systems running</p>
           </div>
         </div>
       </div>
@@ -947,30 +951,50 @@ export default function DashboardPage() {
           <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
             <h3 className="text-lg font-semibold text-white mb-6">Demographic Distribution</h3>
             <div className="grid grid-cols-2 gap-8">
-              {/* Age Distribution */}
+              {/* Age Distribution - Histogram */}
               <div>
                 <p className="text-sm font-medium text-gray-300 mb-4">Age Distribution</p>
-                <div className="flex items-center gap-6">
-                  <PieChart
-                    data={Object.entries(ageDistribution).map(([label, value]) => ({
-                      label,
-                      value,
-                      color: ageColors[label] || '#93c5fd',
-                    }))}
-                    size={180}
-                  />
-                  <div className="space-y-2">
-                    {Object.entries(ageDistribution).map(([label]) => (
-                      <div key={label} className="flex items-center gap-2 text-sm">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: ageColors[label] || '#93c5fd' }}
-                        />
-                        <span className="text-gray-600">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                {(() => {
+                  const maxCount = Math.max(...Object.values(ageBins));
+                  const ageBinOrder = ['18-25', '26-35', '36-45', '46-60', '60+'];
+
+                  return (
+                    <div className="space-y-3">
+                      {ageBinOrder.map((bin) => {
+                        const count = ageBins[bin];
+                        const percent = totalResponses > 0 ? (count / totalResponses) * 100 : 0;
+                        const barHeight = maxCount > 0 ? (count / maxCount) * 100 : 0;
+
+                        return (
+                          <div key={bin} className="flex items-center gap-3">
+                            <div className="w-16 text-xs text-gray-400 text-right">{bin}</div>
+                            <div className="flex-1 flex items-center gap-2">
+                              <div className="flex-1 bg-slate-700 rounded-full h-8 overflow-hidden">
+                                <div
+                                  className="h-full flex items-center justify-end px-3 transition-all"
+                                  style={{
+                                    width: `${barHeight}%`,
+                                    backgroundColor: ageBinColors[bin],
+                                    minWidth: count > 0 ? '30px' : '0'
+                                  }}
+                                >
+                                  {count > 0 && (
+                                    <span className="text-xs font-medium text-white">
+                                      {count}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="w-12 text-xs text-gray-400">
+                                {percent.toFixed(0)}%
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Users by Location */}
@@ -987,18 +1011,16 @@ export default function DashboardPage() {
             {(() => {
               const maleCount = genderDistribution['Male'] || 0;
               const femaleCount = genderDistribution['Female'] || 0;
-              const othersCount = (genderDistribution['Other'] || 0) +
-                (genderDistribution['Prefer not to say'] || 0) +
-                (genderDistribution['Unknown'] || 0);
+              const preferNotToSayCount = genderDistribution['Prefer not to say'] || 0;
 
               const malePercent = totalResponses > 0 ? (maleCount / totalResponses) * 100 : 0;
               const femalePercent = totalResponses > 0 ? (femaleCount / totalResponses) * 100 : 0;
-              const othersPercent = totalResponses > 0 ? (othersCount / totalResponses) * 100 : 0;
+              const preferNotToSayPercent = totalResponses > 0 ? (preferNotToSayCount / totalResponses) * 100 : 0;
 
               const genderData = [
-                { label: 'Male', count: maleCount, percent: malePercent, color: '#facc15' },
-                { label: 'Female', count: femaleCount, percent: femalePercent, color: '#2563eb' },
-                { label: 'Others', count: othersCount, percent: othersPercent, color: '#14b8a6' },
+                { label: 'Male', count: maleCount, percent: malePercent, color: '#60a5fa' },
+                { label: 'Female', count: femaleCount, percent: femalePercent, color: '#ec4899' },
+                { label: 'Prefer not to say', count: preferNotToSayCount, percent: preferNotToSayPercent, color: '#a78bfa' },
               ].filter(g => g.count > 0);
 
               if (genderData.length === 0) {
@@ -1076,6 +1098,7 @@ export default function DashboardPage() {
                 <tr>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Applicant</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">CWI Score</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Quality</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Risk</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Submitted</th>
                 </tr>
@@ -1083,7 +1106,7 @@ export default function DashboardPage() {
               <tbody>
                 {paginatedApplicants.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-12 text-center text-gray-400">
+                    <td colSpan={5} className="py-12 text-center text-gray-400">
                       {applicants.length === 0 ? 'No applicants yet' : 'No applicants match your search'}
                     </td>
                   </tr>
@@ -1119,6 +1142,43 @@ export default function DashboardPage() {
                           <span className="font-medium text-white">
                             {cwiScore !== null && cwiScore !== undefined ? cwiScore.toFixed(1) : 'N/A'}
                           </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          {(() => {
+                            const qualityScore = applicant.quality_score;
+                            const validationResult = applicant.validation_result;
+
+                            if (qualityScore === null || qualityScore === undefined) {
+                              return <span className="text-gray-400 text-sm">N/A</span>;
+                            }
+
+                            // Color code based on severity
+                            const color = qualityScore >= 85 ? 'text-green-400' :
+                                         qualityScore >= 65 ? 'text-yellow-400' :
+                                         'text-red-400';
+
+                            const bgColor = qualityScore >= 85 ? 'bg-green-100' :
+                                           qualityScore >= 65 ? 'bg-yellow-100' :
+                                           'bg-red-100';
+
+                            const textColor = qualityScore >= 85 ? 'text-green-700' :
+                                             qualityScore >= 65 ? 'text-yellow-700' :
+                                             'text-red-700';
+
+                            const severity = validationResult?.severityLevel ||
+                                           (qualityScore >= 85 ? 'MINOR' : qualityScore >= 65 ? 'MODERATE' : 'SEVERE');
+
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span className={`font-semibold ${color}`}>
+                                  {qualityScore}/100
+                                </span>
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${bgColor} ${textColor}`}>
+                                  {severity}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="py-4 px-4">
                           {risk ? (
@@ -1461,71 +1521,6 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <>
-                    {/* Section A: Demographic Information */}
-                    <div className="mb-8">
-                      <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">
-                        Section A: Demographic Information
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Full Name</p>
-                          <p className="text-gray-900">{selectedApplicant.full_name || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Email Address</p>
-                          <p className="text-gray-900">{selectedApplicant.email || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Country of Residence</p>
-                          <p className="text-gray-900">{selectedApplicant.country || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Age Range</p>
-                          <p className="text-gray-900">{selectedApplicant.age_range || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Gender</p>
-                          <p className="text-gray-900">{selectedApplicant.gender || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Marital Status</p>
-                          <p className="text-gray-900">{selectedApplicant.marital_status || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Highest Level of Education</p>
-                          <p className="text-gray-900">{selectedApplicant.education || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Employment Status</p>
-                          <p className="text-gray-900">{selectedApplicant.employment_status || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Monthly Income Range</p>
-                          <p className="text-gray-900">{selectedApplicant.income_range || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Number of Dependents</p>
-                          <p className="text-gray-900">{selectedApplicant.dependents || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Has Bank Account</p>
-                          <p className="text-gray-900">{selectedApplicant.has_bank_account || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Loan History</p>
-                          <p className="text-gray-900">{selectedApplicant.loan_history || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Residency Status</p>
-                          <p className="text-gray-900">{selectedApplicant.residency_status || 'Not provided'}</p>
-                        </div>
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <p className="text-sm text-gray-500 mb-1">Institution ID</p>
-                          <p className="text-gray-900 font-mono text-xs">{selectedApplicant.institution_id || 'Not provided'}</p>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Assessment Responses */}
                     {responses[selectedApplicant.id] && responses[selectedApplicant.id].length > 0 && (
                       <div>

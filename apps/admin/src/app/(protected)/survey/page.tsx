@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Plus,
   GripVertical,
@@ -10,7 +10,10 @@ import {
   X,
 } from 'lucide-react';
 
-type CreditCategory = 'Character' | 'Capacity' | 'Capital' | 'Conditions' | 'Collateral';
+// Import the actual questions from the questionnaire
+import { sections as questionnaireSections } from '../../../../../applicant/src/data/questions';
+
+type CreditCategory = 'Character' | 'Capacity' | 'Capital' | 'Conditions' | 'Collateral' | 'Demographics';
 
 interface Question {
   id: string;
@@ -31,135 +34,46 @@ interface Section {
   questions: Question[];
 }
 
-// Standard frequency scale used across most questions
-const frequencyScale = ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'];
+// Convert questionnaire sections to survey format
+const convertToSurveyFormat = (): Section[] => {
+  return questionnaireSections.map((section) => {
+    // Map section IDs to categories
+    let category: CreditCategory;
+    if (section.id === 'section-a') category = 'Demographics';
+    else if (section.id === 'section-b') category = 'Character';
+    else if (section.id === 'section-c') category = 'Capacity';
+    else if (section.id === 'section-d') category = 'Capital';
+    else if (section.id === 'section-e') category = 'Collateral';
+    else if (section.id === 'section-f') category = 'Conditions';
+    else category = 'Character';
 
-// Initialize sections based on the 5Cs of Credit
-const initialSections: Section[] = [
-  {
-    id: 'character',
-    name: 'Character',
-    category: 'Character',
-    questions: [
-      // Payment History Questions
-      { id: 'q1', number: 1, text: 'In the past 12 months, how often did you miss RENT payments?', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'payment_history', reverseScored: true },
-      { id: 'q2', number: 2, text: 'In the past 12 months, how often did you miss UTILITY payments?', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'payment_history', reverseScored: true },
-      { id: 'q3', number: 3, text: 'In the past 12 months, how often did you miss MOBILE/BROADBAND payments?', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'payment_history', reverseScored: true },
-      { id: 'q4', number: 4, text: 'In the past 12 months, how often did you miss INSURANCE payments?', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'payment_history', reverseScored: true },
-      { id: 'q5', number: 5, text: 'In the past 12 months, how often did you miss SUBSCRIPTION payments?', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'payment_history', reverseScored: true },
-      { id: 'q6', number: 6, text: 'How often have you had to renegotiate payment terms with lenders or service providers?', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'payment_history', reverseScored: true },
-      // Financial Behaviour Questions
-      { id: 'q7', number: 7, text: 'I check my account balance regularly.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'financial_behaviour', reverseScored: false },
-      { id: 'q8', number: 8, text: 'I track my expenses consistently.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'financial_behaviour', reverseScored: false },
-      { id: 'q10', number: 10, text: 'I pay my bills on time.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'financial_behaviour', reverseScored: false },
-      { id: 'q11', number: 11, text: 'I follow a monthly budget.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'financial_behaviour', reverseScored: false },
-      { id: 'q12', number: 12, text: 'I compare prices before making purchases.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'financial_behaviour', reverseScored: false },
-      { id: 'q13', number: 13, text: 'I am able to achieve my financial goals.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'financial_behaviour', reverseScored: false },
-      // Crisis Decision Making
-      { id: 'q16', number: 16, text: 'In a financial crisis, rank the following from 1 (first priority) to 6 (last priority):', type: 'ranking', options: ['Contact lender', 'Borrow from family/friends', 'Skip payments', 'Prioritise other expenses', 'Sell assets', 'Work extra hours'], required: false, category: 'Character', construct: 'crisis_decision_making', reverseScored: false },
-      // Conscientiousness
-      { id: 'q17', number: 17, text: 'I pay attention to details.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'conscientiousness', reverseScored: false },
-      { id: 'q18', number: 18, text: 'I follow schedules.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'conscientiousness', reverseScored: false },
-      { id: 'q19', number: 19, text: 'I complete tasks efficiently.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'conscientiousness', reverseScored: false },
-      { id: 'q20', number: 20, text: 'I am always prepared.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'conscientiousness', reverseScored: false },
-      { id: 'q21', number: 21, text: 'I get chores done right away.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'conscientiousness', reverseScored: false },
-      // Emotional Stability
-      { id: 'q22', number: 22, text: 'I often feel stressed.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'emotional_stability', reverseScored: true },
-      { id: 'q23', number: 23, text: 'I worry about many things.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'emotional_stability', reverseScored: true },
-      { id: 'q24', number: 24, text: 'I get upset easily.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'emotional_stability', reverseScored: true },
-      { id: 'q25', number: 25, text: 'I feel anxious frequently.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'emotional_stability', reverseScored: true },
-      { id: 'q26', number: 26, text: 'I have frequent mood swings.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'emotional_stability', reverseScored: true },
-      // Agreeableness
-      { id: 'q27', number: 27, text: "I sympathise with others' feelings.", type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'agreeableness', reverseScored: false },
-      { id: 'q28', number: 28, text: 'I take time out for others.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'agreeableness', reverseScored: false },
-      { id: 'q29', number: 29, text: "I feel others' emotions.", type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'agreeableness', reverseScored: false },
-      { id: 'q30', number: 30, text: 'I make people feel at ease.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'agreeableness', reverseScored: false },
-      { id: 'q31', number: 31, text: 'I am interested in others.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'agreeableness', reverseScored: false },
-      // Openness
-      { id: 'q32', number: 32, text: 'I have a vivid imagination.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'openness', reverseScored: false },
-      { id: 'q33', number: 33, text: 'I enjoy reflecting on ideas.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'openness', reverseScored: false },
-      { id: 'q34', number: 34, text: 'I value artistic experiences.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'openness', reverseScored: false },
-      { id: 'q35', number: 35, text: 'I am curious about new things.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'openness', reverseScored: false },
-      { id: 'q36', number: 36, text: 'I enjoy exploring new concepts.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'openness', reverseScored: false },
-      // Extraversion
-      { id: 'q37', number: 37, text: 'I am the life of the party.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'extraversion', reverseScored: false },
-      { id: 'q38', number: 38, text: 'I feel comfortable around people.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'extraversion', reverseScored: false },
-      { id: 'q39', number: 39, text: 'I start conversations easily.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'extraversion', reverseScored: false },
-      { id: 'q40', number: 40, text: 'I talk to many people at social gatherings.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'extraversion', reverseScored: false },
-      { id: 'q41', number: 41, text: "I don't mind being the centre of attention.", type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'extraversion', reverseScored: false },
-      // Self Control
-      { id: 'q47', number: 47, text: 'I resist temptations well.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'self_control', reverseScored: false },
-      { id: 'q48', number: 48, text: 'I act impulsively.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'self_control', reverseScored: true },
-      { id: 'q49', number: 49, text: 'I buy things without thinking.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'self_control', reverseScored: true },
-      { id: 'q50', number: 50, text: 'I can stay focused on long-term goals.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'self_control', reverseScored: false },
-      { id: 'q51', number: 51, text: 'I avoid unnecessary spending.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'self_control', reverseScored: false },
-      { id: 'q52', number: 52, text: 'I control my urges to spend impulsively.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'self_control', reverseScored: false },
-      { id: 'q53', number: 53, text: 'I think carefully before making purchases.', type: 'scale', options: frequencyScale, required: true, category: 'Character', construct: 'self_control', reverseScored: false },
-      // Locus of Control
-      { id: 'q54', number: 54, text: 'Choose the statement that best reflects your belief:', type: 'select', options: ['My financial security depends mainly on my own actions.', 'External factors determine my financial situation.'], required: true, category: 'Character', construct: 'locus_of_control', reverseScored: false },
-      { id: 'q55', number: 55, text: 'Choose the statement that best reflects your belief:', type: 'select', options: ['Financial planning helps me achieve goals.', 'Luck determines financial outcomes.'], required: true, category: 'Character', construct: 'locus_of_control', reverseScored: false },
-      { id: 'q56', number: 56, text: 'Choose the statement that best reflects your belief:', type: 'select', options: ['Financial success comes from hard work.', 'Financial success comes from being in the right place at the right time.'], required: true, category: 'Character', construct: 'locus_of_control', reverseScored: false },
-      { id: 'q57', number: 57, text: 'Choose the statement that best reflects your belief:', type: 'select', options: ['I can achieve the financial goals I set.', "Financial goals often don't work out regardless."], required: true, category: 'Character', construct: 'locus_of_control', reverseScored: false },
-      { id: 'q58', number: 58, text: 'Choose the statement that best reflects your belief:', type: 'select', options: ['I am responsible for my financial well-being.', 'External forces determine my situation.'], required: true, category: 'Character', construct: 'locus_of_control', reverseScored: false },
-      // Cognitive Reflection
-      { id: 'q62', number: 62, text: 'A bat and a ball cost ₦1,100 in total. The bat costs ₦1,000 more than the ball. How much does the ball cost?', type: 'select', options: ['₦50', '₦100', '₦550'], required: true, category: 'Character', construct: 'cognitive_reflection' },
-      // Delay Discounting
-      { id: 'q63', number: 63, text: 'Would you prefer:', type: 'select', options: ['A: ₦5,000 today', 'B: ₦7,500 in one month'], required: true, category: 'Character', construct: 'delay_discounting' },
-    ],
-  },
-  {
-    id: 'capacity',
-    name: 'Capacity',
-    category: 'Capacity',
-    questions: [
-      // Emergency Preparedness
-      { id: 'q14', number: 14, text: 'If an unexpected expense occurred today, which option would you rely on first?', type: 'select', options: ['Personal savings', 'Borrow from family/friends', 'Sell an asset', 'Take a loan', 'Other'], required: true, category: 'Capacity', construct: 'emergency_preparedness', reverseScored: false },
-      // Time Orientation
-      { id: 'q60', number: 60, text: 'How often do you think about your financial situation 5 years from now?', type: 'scale', options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Very often'], required: true, category: 'Capacity', construct: 'time_orientation', reverseScored: false },
-      { id: 'q61', number: 61, text: 'I believe small financial decisions today significantly affect my future.', type: 'scale', options: frequencyScale, required: true, category: 'Capacity', construct: 'time_orientation', reverseScored: false },
-      // Financial Numeracy
-      { id: 'q64', number: 64, text: 'You buy bread for ₦500 and fish for ₦800. You pay with ₦2,000. How much change should you get?', type: 'select', options: ['₦700', '₦1,200', '₦1,500'], required: true, category: 'Capacity', construct: 'financial_numeracy' },
-      { id: 'q65', number: 65, text: 'You need to borrow ₦50,000. Lender A: Pay back ₦55,000 after 1 month. Lender B: Pay back ₦60,000 after 3 months. Which costs you LESS in total interest?', type: 'select', options: ['Lender A (₦5,000 interest)', 'Lender B (₦10,000 interest)', 'Same total interest'], required: true, category: 'Capacity', construct: 'financial_numeracy' },
-    ],
-  },
-  {
-    id: 'capital',
-    name: 'Capital',
-    category: 'Capital',
-    questions: [
-      // Savings & Financial Behaviour
-      { id: 'q9', number: 9, text: 'I save money regularly.', type: 'scale', options: frequencyScale, required: true, category: 'Capital', construct: 'financial_behaviour', reverseScored: false },
-      // Emergency Savings
-      { id: 'q15', number: 15, text: 'How many months of emergency savings do you currently have?', type: 'select', options: ['None', '1 month', '2–3 months', '4–6 months', 'More than 6 months'], required: true, category: 'Capital', construct: 'emergency_preparedness', reverseScored: false },
-    ],
-  },
-  {
-    id: 'conditions',
-    name: 'Conditions',
-    category: 'Conditions',
-    questions: [
-      // Risk Preference
-      { id: 'q42', number: 42, text: 'I see myself as a risk-taker.', type: 'scale', options: frequencyScale, required: true, category: 'Conditions', construct: 'risk_preference', reverseScored: false },
-      { id: 'q43', number: 43, text: 'In a game show, I would choose the riskier option.', type: 'scale', options: frequencyScale, required: true, category: 'Conditions', construct: 'risk_preference', reverseScored: false },
-      { id: 'q44', number: 44, text: "I associate the word 'risk' with opportunity.", type: 'scale', options: frequencyScale, required: true, category: 'Conditions', construct: 'risk_preference', reverseScored: false },
-      { id: 'q45', number: 45, text: 'I would shift my assets to pursue higher returns.', type: 'scale', options: frequencyScale, required: true, category: 'Conditions', construct: 'risk_preference', reverseScored: false },
-      { id: 'q46', number: 46, text: 'I am comfortable with potential losses over several years.', type: 'scale', options: frequencyScale, required: true, category: 'Conditions', construct: 'risk_preference', reverseScored: false },
-    ],
-  },
-  {
-    id: 'collateral',
-    name: 'Collateral',
-    category: 'Collateral',
-    questions: [
-      // Social Support
-      { id: 'q59', number: 59, text: 'How many people could you ask to borrow money in an emergency?', type: 'select', options: ['None', '1–2 people', '3–5 people', '6–10 people', 'More than 10'], required: true, category: 'Collateral', construct: 'social_support', reverseScored: false },
-    ],
-  },
-];
+    return {
+      id: section.id,
+      name: section.title,
+      category,
+      questions: section.questions.map((q) => ({
+        id: q.id,
+        number: q.number,
+        text: q.text,
+        type: q.type as Question['type'],
+        options: q.options || [],
+        required: true,
+        category,
+        construct: q.construct,
+        reverseScored: q.reverseScored,
+      })),
+    };
+  });
+};
+
+const initialSections: Section[] = convertToSurveyFormat();
+
+// Standard frequency scale used for new questions
+const frequencyScale = ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'];
 
 export default function SurveyPage() {
   const [sections, setSections] = useState<Section[]>(initialSections);
-  const [activeSection, setActiveSection] = useState('character');
+  const [activeSection, setActiveSection] = useState('section-a');
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   const currentSection = sections.find((s) => s.id === activeSection);
