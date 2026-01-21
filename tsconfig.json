@@ -19,7 +19,8 @@
       "@fintech/hooks": ["./packages/hooks/src"],
       "@fintech/lib": ["./packages/lib/src"],
       "@fintech/types": ["./packages/types/src"],
-      "@fintech/config": ["./packages/config/src"]
+      "@fintech/config": ["./packages/config/src"],
+      "@fintech/validation": ["./packages/validation/src"]
     }
   },
   "exclude": ["node_modules"]
