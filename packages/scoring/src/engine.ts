@@ -172,9 +172,10 @@ function scoreDelayDiscounting(value: string): number {
 }
 
 /**
- * Score financial numeracy questions (q64, q65)
+ * Score financial numeracy questions (q64, q65, asfn1_1 through asfn2_5)
  */
 function scoreFinancialNumeracy(questionId: string, value: string): number {
+  // Original questions (existing logic)
   if (questionId === 'q64') {
     // Change calculation: ₦2000 - (₦500 + ₦800) = ₦700
     return value.includes('₦700') || value.includes('700') ? 1 : 0;
@@ -185,7 +186,24 @@ function scoreFinancialNumeracy(questionId: string, value: string): number {
     return value.includes('Lender A') ? 1 : 0;
   }
 
-  return 0;
+  // ASFN questions - exact string matching
+  const asfnCorrectAnswers: Record<string, string> = {
+    // Level 1: Functional Numeracy
+    'asfn1_1': 'B) Two $20 bills',
+    'asfn1_2': 'A) $5',
+    'asfn1_3': 'A) $15',
+    'asfn1_4': 'C) $12',
+    'asfn1_5': 'A) Shop B',
+    // Level 2: Financial Comparison
+    'asfn2_1': 'A) Lender A',
+    'asfn2_2': 'A) Option A',
+    'asfn2_3': 'B) $450',
+    'asfn2_4': 'B) Plan B',
+    'asfn2_5': 'B) Less groceries',
+  };
+
+  const correctAnswer = asfnCorrectAnswers[questionId];
+  return correctAnswer && value === correctAnswer ? 1 : 0;
 }
 
 /**

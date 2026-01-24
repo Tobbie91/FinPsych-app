@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
+  XCircle,
   AlertTriangle,
   Clock,
   RefreshCw,
@@ -99,6 +100,22 @@ const questionTexts: Record<string, string> = {
   q59: 'How many people could you ask to borrow money in an emergency?',
   q60: 'How often do you think about your financial situation 5 years from now?',
   q61: 'I believe small financial decisions today significantly affect my future.',
+  // Section I - Neurocognitive (Q62-Q65)
+  q62: 'Cognitive Reflection Test: Bat & Ball Problem',
+  q63: 'Delay Discounting: ₦5,000 now vs ₦7,500 in one month',
+  q64: 'Financial Numeracy: Change calculation (₦2,000 - ₦500 - ₦800)',
+  q65: 'Financial Comparison: Lender A vs Lender B',
+  // Section G - ASFN Financial Numeracy Assessment
+  asfn1_1: 'ASFN L1 Q1: Which amount is MORE?',
+  asfn1_2: 'ASFN L1 Q2: Making Change ($10 - $5)',
+  asfn1_3: 'ASFN L1 Q3: Simple Budgeting ($50 - $35)',
+  asfn1_4: 'ASFN L1 Q4: Proportional Reasoning (rice price)',
+  asfn1_5: 'ASFN L1 Q5: Unit Price Comparison (apples)',
+  asfn2_1: 'ASFN L2 Q1: Comparing Loan Costs',
+  asfn2_2: 'ASFN L2 Q2: Savings Growth Comparison',
+  asfn2_3: 'ASFN L2 Q3: Instalment Payment Total Cost',
+  asfn2_4: 'ASFN L2 Q4: Investment Growth Comparison',
+  asfn2_5: 'ASFN L2 Q5: Real Income Comparison (Inflation)',
 };
 
 interface DeviceInfo {
@@ -1496,6 +1513,82 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* ASFN Numeracy Summary Card */}
+              {selectedApplicant.response_metadata?.session?.asfn && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Financial Numeracy (ASFN) Results
+                  </h3>
+
+                  {/* Overall Score */}
+                  <div className="mb-4 p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 font-medium">Overall Score:</span>
+                      <span className="text-2xl font-bold text-purple-600">
+                        {selectedApplicant.response_metadata.session.asfn.overallScore.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                        selectedApplicant.response_metadata.session.asfn.tier === 'HIGH'
+                          ? 'bg-green-100 text-green-800'
+                          : selectedApplicant.response_metadata.session.asfn.tier === 'MEDIUM'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {selectedApplicant.response_metadata.session.asfn.tier} NUMERACY
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Level 1 Results */}
+                  <div className="mb-3 p-3 rounded-lg bg-gray-50">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-medium text-gray-700">Level 1: Functional Numeracy</span>
+                      <span className="font-bold text-gray-900">
+                        {selectedApplicant.response_metadata.session.asfn.level1.correct}/{selectedApplicant.response_metadata.session.asfn.level1.total}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{ width: `${selectedApplicant.response_metadata.session.asfn.level1.accuracy}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600">
+                      {selectedApplicant.response_metadata.session.asfn.level1.accuracy.toFixed(0)}% correct
+                    </span>
+                  </div>
+
+                  {/* Level 2 Results (if attempted) */}
+                  {selectedApplicant.response_metadata.session.asfn.level2.attempted ? (
+                    <div className="mb-3 p-3 rounded-lg bg-gray-50">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium text-gray-700">Level 2: Financial Comparison</span>
+                        <span className="font-bold text-gray-900">
+                          {selectedApplicant.response_metadata.session.asfn.level2.correct}/{selectedApplicant.response_metadata.session.asfn.level2.total}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-purple-500 h-2 rounded-full"
+                          style={{ width: `${selectedApplicant.response_metadata.session.asfn.level2.accuracy}%` }}
+                        />
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {selectedApplicant.response_metadata.session.asfn.level2.accuracy!.toFixed(0)}% correct
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200">
+                      <span className="text-sm text-yellow-800">
+                        ⚠️ Level 2 not attempted (requires 60% on Level 1)
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Detailed Assessment Breakdown */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <div className="flex items-center gap-3 mb-6">
@@ -1521,6 +1614,74 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <>
+                    {/* ASFN Questions Section */}
+                    {responses[selectedApplicant.id]?.filter(r => r.question_id.startsWith('asfn')).length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-semibold text-gray-800 mb-3">
+                          Financial Numeracy (ASFN) Questions
+                        </h4>
+                        <div className="space-y-2">
+                          {(() => {
+                            // ASFN correct answers mapping
+                            const asfnCorrectAnswers: Record<string, string> = {
+                              'asfn1_1': 'B) Two $20 bills',
+                              'asfn1_2': 'A) $5',
+                              'asfn1_3': 'A) $15',
+                              'asfn1_4': 'C) $12',
+                              'asfn1_5': 'A) Shop B',
+                              'asfn2_1': 'A) Lender A',
+                              'asfn2_2': 'A) Option A',
+                              'asfn2_3': 'B) $450',
+                              'asfn2_4': 'B) Plan B',
+                              'asfn2_5': 'B) Less groceries',
+                            };
+
+                            return responses[selectedApplicant.id]
+                              .filter(r => r.question_id.startsWith('asfn'))
+                              .sort((a, b) => a.question_id.localeCompare(b.question_id))
+                              .map((response) => {
+                                const correctAnswer = asfnCorrectAnswers[response.question_id];
+                                const isCorrect = correctAnswer === response.answer;
+
+                                return (
+                                  <div
+                                    key={response.question_id}
+                                    className={`p-3 rounded-lg border-l-4 ${
+                                      isCorrect
+                                        ? 'bg-green-50 border-green-500'
+                                        : 'bg-red-50 border-red-500'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-700 mb-1">
+                                          {questionTexts[response.question_id] || response.question_id}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                          <span className="font-semibold">User Answer:</span> {response.answer}
+                                        </p>
+                                        {!isCorrect && (
+                                          <p className="text-sm text-gray-600 mt-1">
+                                            <span className="font-semibold">Correct Answer:</span> {correctAnswer}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div>
+                                        {isCorrect ? (
+                                          <CheckCircle className="w-5 h-5 text-green-600" />
+                                        ) : (
+                                          <XCircle className="w-5 h-5 text-red-600" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              });
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Assessment Responses */}
                     {responses[selectedApplicant.id] && responses[selectedApplicant.id].length > 0 && (
                       <div>

@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createClient } from '@supabase/supabase-js';
 import {
   sections,
-  getTotalQuestions,
   type Question,
   type CreditCategory,
   categoryColors,
@@ -46,6 +45,22 @@ interface SessionMetadata {
     screenHeight: number;
     timezone: string;
     language: string;
+  };
+  asfn?: {
+    level1: {
+      attempted: boolean;
+      correct: number;
+      total: number;
+      accuracy: number;
+    };
+    level2: {
+      attempted: boolean;
+      correct: number;
+      total: number;
+      accuracy: number | null;
+    };
+    overallScore: number;
+    tier: 'LOW' | 'MEDIUM' | 'HIGH';
   };
 }
 
@@ -303,6 +318,11 @@ export default function QuestionnairePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ASFN adaptive logic state
+  const [asfnLevel1Score, setAsfnLevel1Score] = useState<number | null>(null);
+  const [asfnLevel1Complete, setAsfnLevel1Complete] = useState(false);
+  const [asfnLevel2Unlocked, setAsfnLevel2Unlocked] = useState(false);
+
   // Metadata tracking
   const [sessionMetadata] = useState<SessionMetadata>(() => ({
     sessionId: generateSessionId(),
@@ -322,8 +342,18 @@ export default function QuestionnairePage() {
   const questionStartTimeRef = useRef<number>(Date.now());
 
   const allQuestions = getAllQuestions();
-  const totalQuestions = getTotalQuestions();
-  const currentQuestion = allQuestions[currentQuestionIndex];
+
+  // ASFN adaptive logic: Filter questions based on Level 1 performance
+  const questionsToShow = allQuestions.filter(q => {
+    // Show Level 2 questions only if Level 1 passed
+    if (q.id.startsWith('asfn2_')) {
+      return asfnLevel2Unlocked;
+    }
+    return true;
+  });
+
+  const totalQuestions = questionsToShow.length;
+  const currentQuestion = questionsToShow[currentQuestionIndex];
   const isDemographic = currentQuestion?.sectionId === 'section-a';
   const isNeurocognitive = currentQuestion?.sectionId === 'section-i';
 
@@ -354,6 +384,32 @@ export default function QuestionnairePage() {
 
     return () => clearInterval(interval);
   }, [formData, questionMetadata, currentQuestionIndex, sessionMetadata.sessionId]);
+
+  // ASFN Level 1 scoring and Level 2 unlock logic
+  useEffect(() => {
+    const level1Questions = allQuestions.filter(q => q.id.startsWith('asfn1_'));
+    const level1Answered = level1Questions.every(q => formData[q.id]);
+
+    if (level1Answered && !asfnLevel1Complete) {
+      // Calculate Level 1 score
+      let correct = 0;
+      level1Questions.forEach(q => {
+        const userAnswer = formData[q.id];
+        if (userAnswer === q.correctAnswer) {
+          correct++;
+        }
+      });
+
+      const score = (correct / level1Questions.length) * 100;
+      setAsfnLevel1Score(score);
+      setAsfnLevel1Complete(true);
+
+      // Unlock Level 2 if score >= 60%
+      if (score >= 60) {
+        setAsfnLevel2Unlocked(true);
+      }
+    }
+  }, [formData, allQuestions, asfnLevel1Complete]);
 
   // Record metadata when answer changes
   const handleInputChange = useCallback((value: string) => {
@@ -449,11 +505,64 @@ export default function QuestionnairePage() {
     setIsSubmitting(true);
     setError(null);
 
+    // Calculate ASFN scores
+    const asfnLevel1Questions = allQuestions.filter(q => q.id.startsWith('asfn1_'));
+    const asfnLevel2Questions = allQuestions.filter(q => q.id.startsWith('asfn2_'));
+
+    let asfnLevel1Correct = 0;
+    let asfnLevel2Correct = 0;
+    let asfnLevel2Attempted = false;
+
+    asfnLevel1Questions.forEach(q => {
+      if (formData[q.id] === q.correctAnswer) asfnLevel1Correct++;
+    });
+
+    if (asfnLevel2Unlocked) {
+      asfnLevel2Attempted = true;
+      asfnLevel2Questions.forEach(q => {
+        if (formData[q.id] === q.correctAnswer) asfnLevel2Correct++;
+      });
+    }
+
+    const asfnLevel1Accuracy = (asfnLevel1Correct / asfnLevel1Questions.length) * 100;
+    const asfnLevel2Accuracy = asfnLevel2Attempted
+      ? (asfnLevel2Correct / asfnLevel2Questions.length) * 100
+      : null;
+
+    // Overall score: 60% Level 1, 40% Level 2 (if attempted)
+    const asfnOverallScore = asfnLevel2Attempted
+      ? (asfnLevel1Accuracy * 0.6) + (asfnLevel2Accuracy! * 0.4)
+      : asfnLevel1Accuracy;
+
+    // Determine tier
+    let asfnTier: 'LOW' | 'MEDIUM' | 'HIGH';
+    if (asfnOverallScore >= 80) asfnTier = 'HIGH';
+    else if (asfnOverallScore >= 60) asfnTier = 'MEDIUM';
+    else asfnTier = 'LOW';
+
+    const asfnMetadata = {
+      level1: {
+        attempted: true,
+        correct: asfnLevel1Correct,
+        total: asfnLevel1Questions.length,
+        accuracy: asfnLevel1Accuracy,
+      },
+      level2: {
+        attempted: asfnLevel2Attempted,
+        correct: asfnLevel2Correct,
+        total: asfnLevel2Questions.length,
+        accuracy: asfnLevel2Accuracy,
+      },
+      overallScore: asfnOverallScore,
+      tier: asfnTier,
+    };
+
     // Finalize session metadata
     const finalSessionMetadata: SessionMetadata = {
       ...sessionMetadata,
       endTime: Date.now(),
       totalTimeMs: Date.now() - sessionMetadata.startTime,
+      asfn: asfnMetadata,
     };
 
     // Prepare submission payload
@@ -699,6 +808,20 @@ export default function QuestionnairePage() {
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mb-4">
                   {error}
+                </div>
+              )}
+
+              {/* ASFN Level 1 Results */}
+              {asfnLevel1Complete && (
+                <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <h3 className="font-semibold text-blue-900 mb-2">
+                    Level 1 Complete: {asfnLevel1Score}% ({asfnLevel1Score! >= 60 ? 'PASSED' : 'NOT PASSED'})
+                  </h3>
+                  {asfnLevel2Unlocked ? (
+                    <p className="text-blue-800">You've unlocked Level 2: Financial Comparison questions!</p>
+                  ) : (
+                    <p className="text-blue-800">Level 2 will not be shown (requires 60% to unlock).</p>
+                  )}
                 </div>
               )}
             </div>

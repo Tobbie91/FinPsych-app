@@ -45,7 +45,7 @@ export const GLOBAL_STATS: Record<string, { mean: number; std: number }> = {
   extraversion: { mean: 3.15, std: 0.89 },
   cognitive_reflection: { mean: 0.35, std: 0.48 }, // Binary: correct=1, incorrect=0
   delay_discounting: { mean: 0.45, std: 0.50 }, // Binary: delayed preference=1, immediate=0
-  financial_numeracy: { mean: 0.68, std: 0.38 }, // Proportion correct (0-1)
+  financial_numeracy: { mean: 0.70, std: 0.35 }, // Proportion correct (0-1) - Updated for 12 questions
 };
 
 // -----------------------------------------------------------------------------
@@ -192,6 +192,18 @@ export const QUESTION_CONSTRUCT_MAP: Record<string, string> = {
   q63: 'delay_discounting', // Delay preference
   q64: 'financial_numeracy', // Change calculation
   q65: 'financial_numeracy', // Lender comparison
+  // ASFN Level 1: Functional Numeracy (asfn1_1 - asfn1_5)
+  asfn1_1: 'financial_numeracy',
+  asfn1_2: 'financial_numeracy',
+  asfn1_3: 'financial_numeracy',
+  asfn1_4: 'financial_numeracy',
+  asfn1_5: 'financial_numeracy',
+  // ASFN Level 2: Financial Comparison (asfn2_1 - asfn2_5)
+  asfn2_1: 'financial_numeracy',
+  asfn2_2: 'financial_numeracy',
+  asfn2_3: 'financial_numeracy',
+  asfn2_4: 'financial_numeracy',
+  asfn2_5: 'financial_numeracy',
 };
 
 // -----------------------------------------------------------------------------
