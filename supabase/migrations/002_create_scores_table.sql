@@ -77,8 +77,8 @@ CREATE POLICY "Admins have full access to scores" ON scores
     FOR ALL
     USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
--- Allow service role to insert scores (for scoring engine)
-CREATE POLICY "Service role can insert scores" ON scores
+-- Allow anonymous inserts (applicant app uses anon key for client-side scoring)
+CREATE POLICY "Allow anonymous insert on scores" ON scores
     FOR INSERT
     WITH CHECK (true);
 

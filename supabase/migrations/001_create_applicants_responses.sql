@@ -92,6 +92,12 @@ CREATE POLICY "Allow anonymous insert on applicants" ON applicants
     FOR INSERT
     WITH CHECK (true);
 
+-- Allow anonymous updates (for adding cwi_score after submission)
+CREATE POLICY "Allow anonymous update on applicants" ON applicants
+    FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
+
 -- Allow institution users to view their applicants
 CREATE POLICY "Institution users can view their applicants" ON applicants
     FOR SELECT
