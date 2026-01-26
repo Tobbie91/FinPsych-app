@@ -620,6 +620,10 @@ export default function QuestionnairePage() {
               session: finalSessionMetadata,
               questions: questionMetadata,
             },
+            asfn_level1_score: asfnLevel1Accuracy,
+            asfn_level2_score: asfnLevel2Accuracy,
+            asfn_overall_score: asfnOverallScore,
+            asfn_tier: asfnTier,
           });
 
         if (applicantError) throw applicantError;

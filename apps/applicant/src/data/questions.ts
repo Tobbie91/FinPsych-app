@@ -60,7 +60,7 @@ export const sections: Section[] = [
   // SECTION A: Demographic Information (13 questions) - PDF Specification
   {
     id: 'section-a',
-    title: 'Section A',
+    title: 'Demographic',
     subtitle: 'Demographic Information',
     questions: [
       // Keep existing name and email
@@ -1086,7 +1086,7 @@ export const sections: Section[] = [
   // SECTION G: Neurocognitive Assessment - 24 questions (ASFN + LCA + Gaming Detection)
   {
     id: 'section-g',
-    title: 'Section G',
+    title: 'Neurocognitive',
     subtitle: 'Neurocognitive Assessment',
     questions: [
       // ASFN Level 1: Functional Numeracy (5 questions)
@@ -1166,7 +1166,7 @@ export const sections: Section[] = [
       {
         id: 'asfn2_2',
         number: 90,
-        text: 'Where will you have MORE money after 6 months? Option A: Save $50 every month for 6 months (no interest). Option B: Save $250 now, earn $10 interest after 6 months.',
+        text: 'Where will you have MORE money after 6 months? Save $50 every month for 6 months (no interest), OR Save $250 now and earn $10 interest after 6 months.',
         type: 'select',
         options: ['A) Option A', 'B) Option B', 'C) Same amount'],
         correctAnswer: 'A) Option A',
@@ -1336,7 +1336,7 @@ export const sections: Section[] = [
       {
         id: 'gd4',
         number: 102,
-        text: 'You can have: Option A: $20 today OR Option B: $25 in 1 week. Which would you choose?',
+        text: 'You can have: $20 today OR $25 in 1 week. Which would you choose?',
         type: 'select',
         options: ['A) Option A ($20 today)', 'B) Option B ($25 in 1 week)'],
         construct: 'gaming_detection',
@@ -1346,7 +1346,7 @@ export const sections: Section[] = [
       {
         id: 'gd5',
         number: 103,
-        text: 'You can have: Option A: $50 today OR Option B: $70 in 1 month. Which would you choose?',
+        text: 'You can have: $50 today OR $70 in 1 month. Which would you choose?',
         type: 'select',
         options: ['A) Option A ($50 today)', 'B) Option B ($70 in 1 month)'],
         construct: 'gaming_detection',
@@ -1356,7 +1356,7 @@ export const sections: Section[] = [
       {
         id: 'gd6',
         number: 104,
-        text: 'You can have: Option A: $100 today. OR Option B: $150 in 6 months. Which would you choose?',
+        text: 'You can have: $100 today OR $150 in 6 months. Which would you choose?',
         type: 'select',
         options: ['A) Option A ($100 today)', 'B) Option B ($150 in 6 months)'],
         construct: 'gaming_detection',
