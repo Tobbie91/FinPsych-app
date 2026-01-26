@@ -84,11 +84,11 @@ function generateSessionId(): string {
 function CategoryBadge({ category, description, isNeurocognitive }: { category: CreditCategory; description?: string; isNeurocognitive?: boolean }) {
   const colors = categoryColors[category];
 
-  // Neurocognitive questions get special formatting
-  if (isNeurocognitive && description) {
+  // Neurocognitive questions - simple badge
+  if (isNeurocognitive) {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-        Neurocognitive - {description}
+        Neurocognitive
       </span>
     );
   }
@@ -319,7 +319,6 @@ export default function QuestionnairePage() {
   const [error, setError] = useState<string | null>(null);
 
   // ASFN adaptive logic state
-  const [asfnLevel1Score, setAsfnLevel1Score] = useState<number | null>(null);
   const [asfnLevel1Complete, setAsfnLevel1Complete] = useState(false);
   const [asfnLevel2Unlocked, setAsfnLevel2Unlocked] = useState(false);
 
@@ -401,7 +400,6 @@ export default function QuestionnairePage() {
       });
 
       const score = (correct / level1Questions.length) * 100;
-      setAsfnLevel1Score(score);
       setAsfnLevel1Complete(true);
 
       // Unlock Level 2 if score >= 60%
@@ -715,11 +713,6 @@ export default function QuestionnairePage() {
     return `${minutes}m ago`;
   };
 
-  // Check if this is the start of the neurocognitive section
-  const isNeurocognitiveStart = (questionId: string): boolean => {
-    return questionId === 'asfn1_1'; // First question in Section G
-  };
-
   // Get module-specific instructions for neurocognitive assessment
   const getModuleInstructions = (questionId: string): { title: string; text: string } | null => {
     if (questionId === 'asfn1_1') {
@@ -830,16 +823,6 @@ export default function QuestionnairePage() {
                 <SectionBadge isDemographic={isDemographic} category={currentQuestion.category} description={currentQuestion.categoryDescription} isNeurocognitive={isNeurocognitive} />
               </div>
 
-              {/* Neurocognitive Section Header */}
-              {isNeurocognitiveStart(currentQuestion.id) && (
-                <div className="mb-6 p-6 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
-                  <h2 className="text-2xl font-bold mb-2">Section G: Neurocognitive Assessment</h2>
-                  <p className="text-indigo-100 text-sm">
-                    This section includes financial numeracy, loan consequence awareness, and decision-making questions.
-                  </p>
-                </div>
-              )}
-
               {/* Module Instructions */}
               {getModuleInstructions(currentQuestion.id) && (
                 <div className="mb-6 p-4 rounded-lg bg-purple-50 border border-purple-200">
@@ -864,20 +847,6 @@ export default function QuestionnairePage() {
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm mb-4">
                   {error}
-                </div>
-              )}
-
-              {/* ASFN Level 1 Results */}
-              {asfnLevel1Complete && (
-                <div className="mb-4 p-4 rounded-lg bg-blue-50 border border-blue-200">
-                  <h3 className="font-semibold text-blue-900 mb-2">
-                    Level 1 Complete: {asfnLevel1Score}% ({asfnLevel1Score! >= 60 ? 'PASSED' : 'NOT PASSED'})
-                  </h3>
-                  {asfnLevel2Unlocked ? (
-                    <p className="text-blue-800">You've unlocked Level 2: Financial Comparison questions!</p>
-                  ) : (
-                    <p className="text-blue-800">Level 2 will not be shown (requires 60% to unlock).</p>
-                  )}
                 </div>
               )}
             </div>
