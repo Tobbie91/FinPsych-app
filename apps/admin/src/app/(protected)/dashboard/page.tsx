@@ -934,7 +934,7 @@ export default function DashboardPage() {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-300">Overall Accuracy</span>
+                      <span className="text-sm text-gray-300">Scoring Coverage</span>
                       <span className="text-sm text-gray-400">{scoredApplicants}/{totalResponses} scored</span>
                     </div>
                     <div className="flex items-center gap-4">
@@ -962,7 +962,7 @@ export default function DashboardPage() {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-300">Gaming Detection Rate</span>
+                      <span className="text-sm text-gray-300">Loan Eligibility Rate</span>
                       <span className="text-sm text-gray-400">{eligibleCount}/{totalResponses} eligible</span>
                     </div>
                     <div className="flex items-center gap-4">
