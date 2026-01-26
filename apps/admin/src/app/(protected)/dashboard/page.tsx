@@ -1373,79 +1373,12 @@ export default function DashboardPage() {
                   const cwiScore = score.cwi_0_100;
                   const applicantResponses = responses[selectedApplicant.id] || [];
 
-                  // ===== CALCULATE NEUROCOGNITIVE SCORE FROM REAL RESPONSE DATA =====
-                  // This measures behavioral patterns that indicate genuine vs gaming responses
-
-                  let neuroScore = 50; // Default baseline
-
-                  if (applicantResponses.length > 0) {
-                    // 1. Response Time Analysis (0-25 points)
-                    // Too fast = suspicious, moderate time = thoughtful
-                    const timesMs = applicantResponses
-                      .map(r => r.metadata?.timeSpentMs || 0)
-                      .filter(t => t > 0);
-
-                    let timeScore = 25;
-                    if (timesMs.length > 0) {
-                      const avgTimeMs = timesMs.reduce((a, b) => a + b, 0) / timesMs.length;
-                      const avgTimeSec = avgTimeMs / 1000;
-
-                      // Ideal response time is 3-15 seconds per question
-                      if (avgTimeSec < 1) timeScore = 5; // Too fast - likely gaming
-                      else if (avgTimeSec < 2) timeScore = 10;
-                      else if (avgTimeSec < 3) timeScore = 15;
-                      else if (avgTimeSec <= 15) timeScore = 25; // Optimal
-                      else if (avgTimeSec <= 30) timeScore = 20;
-                      else timeScore = 15; // Very slow but not necessarily bad
-                    }
-
-                    // 2. Answer Change Analysis (0-25 points)
-                    // Some changes = thoughtful reconsideration, too many = indecisive/gaming
-                    const totalChanges = applicantResponses.reduce(
-                      (sum, r) => sum + (r.metadata?.answerChanges?.length || 0), 0
-                    );
-                    const changeRate = totalChanges / applicantResponses.length;
-
-                    let changeScore = 25;
-                    if (changeRate === 0) changeScore = 20; // No changes - could be straight-lining
-                    else if (changeRate <= 0.2) changeScore = 25; // Healthy reconsideration
-                    else if (changeRate <= 0.5) changeScore = 20;
-                    else if (changeRate <= 1) changeScore = 15;
-                    else changeScore = 10; // Too many changes - suspicious
-
-                    // 3. Response Time Variance (0-25 points)
-                    // Consistent times across all questions = suspicious (straight-lining)
-                    // Natural variance = genuine engagement
-                    let varianceScore = 25;
-                    if (timesMs.length > 3) {
-                      const mean = timesMs.reduce((a, b) => a + b, 0) / timesMs.length;
-                      const variance = timesMs.reduce((sum, t) => sum + Math.pow(t - mean, 2), 0) / timesMs.length;
-                      const stdDev = Math.sqrt(variance);
-                      const coeffOfVariation = mean > 0 ? stdDev / mean : 0;
-
-                      // CV < 0.2 = very uniform (suspicious)
-                      // CV 0.3-0.8 = natural variation
-                      // CV > 1.0 = erratic (also suspicious)
-                      if (coeffOfVariation < 0.15) varianceScore = 10; // Too uniform
-                      else if (coeffOfVariation < 0.25) varianceScore = 15;
-                      else if (coeffOfVariation <= 0.8) varianceScore = 25; // Natural
-                      else if (coeffOfVariation <= 1.2) varianceScore = 20;
-                      else varianceScore = 15; // Erratic
-                    }
-
-                    // 4. Completion Quality (0-25 points)
-                    // Based on number of questions answered
-                    const expectedQuestions = 31; // Total questions in assessment
-                    const completionRate = applicantResponses.length / expectedQuestions;
-                    let completionScore = Math.round(completionRate * 25);
-                    completionScore = Math.min(25, Math.max(0, completionScore));
-
-                    // Calculate final neurocognitive score (0-100)
-                    neuroScore = timeScore + changeScore + varianceScore + completionScore;
-                  }
+                  // ===== GET NEUROCOGNITIVE INDEX (NCI) FROM DATABASE =====
+                  // NCI = 60% ASFN + 40% LCA (as per PDF specification)
+                  const nciScore = selectedApplicant.nci_score || 0;
 
                   // Determine if there's a significant discrepancy (gaming indicator)
-                  const difference = cwiScore - neuroScore;
+                  const difference = cwiScore - nciScore;
                   const isHighRisk = difference > 30 || riskBand === 'HIGH' || riskBand === 'VERY_HIGH';
 
                   return (
@@ -1486,8 +1419,8 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500 mb-1">Neurocognitive</p>
-                          <span className="text-3xl font-bold text-gray-900">{neuroScore.toFixed(0)}</span>
+                          <p className="text-sm text-gray-500 mb-1">NCI (Neurocognitive Index)</p>
+                          <span className="text-3xl font-bold text-gray-900">{nciScore.toFixed(0)}</span>
                         </div>
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Difference</p>
@@ -1605,27 +1538,63 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Loan Consequence Awareness Card */}
-              {scores[selectedApplicant.id]?.construct_scores?.loan_consequence_awareness !== undefined && (
+              {/* Loan Consequence Awareness (LCA) Card */}
+              {selectedApplicant.lca_raw_score !== null && selectedApplicant.lca_raw_score !== undefined && (
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Loan Consequence Awareness
+                    Loan Consequence Awareness (LCA)
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-700">Total Score:</span>
+                      <span className="text-gray-700">Raw Score:</span>
                       <span className="text-2xl font-bold text-indigo-600">
-                        {((scores[selectedApplicant.id]?.construct_scores?.loan_consequence_awareness || 0) * 15).toFixed(1)}/15
+                        {selectedApplicant.lca_raw_score.toFixed(0)}/15
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700">Percentage:</span>
+                      <span className="text-xl font-bold text-indigo-600">
+                        {selectedApplicant.lca_percent.toFixed(1)}%
                       </span>
                     </div>
                     <div className="text-sm text-gray-500">
-                      Measures understanding of debt consequences, risk prioritization, and compound interest.
+                      Measures understanding of debt consequences, risk prioritization, and compound interest (5 questions, max 3 points each).
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-indigo-500 h-2 rounded-full"
-                        style={{ width: `${Math.min(((scores[selectedApplicant.id]?.construct_scores?.loan_consequence_awareness || 0) / 3) * 100, 100)}%` }}
+                        style={{ width: `${Math.min(selectedApplicant.lca_percent, 100)}%` }}
                       />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Neurocognitive Index (NCI) Summary Card */}
+              {selectedApplicant.nci_score !== null && selectedApplicant.nci_score !== undefined && (
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Neurocognitive Index (NCI)
+                  </h3>
+                  <div className="mb-4 p-4 rounded-lg bg-white border border-indigo-100">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700 font-medium">Overall NCI Score:</span>
+                      <span className="text-3xl font-bold text-indigo-600">
+                        {selectedApplicant.nci_score.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div className="flex justify-between">
+                      <span>ASFN (60% weight):</span>
+                      <span className="font-medium">{selectedApplicant.asfn_overall_score?.toFixed(1)}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>LCA (40% weight):</span>
+                      <span className="font-medium">{selectedApplicant.lca_percent?.toFixed(1)}%</span>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
+                      Formula: NCI = (0.6 × ASFN) + (0.4 × LCA)
                     </div>
                   </div>
                 </div>

@@ -43,6 +43,8 @@ export interface Question {
   // ASFN fields
   correctAnswer?: string; // For ASFN objective scoring
   level?: 1 | 2; // ASFN level identifier
+  // LCA fields
+  lcaPoints?: Record<string, number>; // LCA point values for each option (A, B, C, D)
 }
 
 export interface Section {
@@ -1223,6 +1225,7 @@ export const sections: Section[] = [
           'C) Try to borrow from family/friends to pay this loan.',
           'D) Focus on earning extra money and pay when you can.',
         ],
+        lcaPoints: { A: 3, B: 0, C: 1, D: 2 }, // Best: proactive communication
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Consequence Prioritization Under Stress',
@@ -1238,6 +1241,7 @@ export const sections: Section[] = [
           "C) He still owes money because the phone didn't fully cover the debt.",
           "D) People will know he couldn't pay his loan.",
         ],
+        lcaPoints: { A: 0, B: 2, C: 3, D: 1 }, // Best: understands debt still exists
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Cascading Consequences',
@@ -1253,6 +1257,7 @@ export const sections: Section[] = [
           'C) Oma - wants to expand her business; expects to earn $500 more per month.',
           'D) David - needs to repair his taxi; without it, cannot earn any income.',
         ],
+        lcaPoints: { A: 3, B: 1, C: 2, D: 0 }, // Best: identifies irregular income + necessity as highest risk
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Necessity vs Want Judgment',
@@ -1268,6 +1273,7 @@ export const sections: Section[] = [
           'C) Still paying higher interest on the old loan.',
           'D) The lender occasionally checks on you.',
         ],
+        lcaPoints: { A: 0, B: 3, C: 1, D: 2 }, // Best: recognizes long-term credit impact
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Long-Term Consequence Recognition',
@@ -1283,6 +1289,7 @@ export const sections: Section[] = [
           'C) $121 (interest compounds - grows on top of previous interest)',
           'D) $130 (penalty fees added)',
         ],
+        lcaPoints: { A: 0, B: 1, C: 3, D: 2 }, // Best: understands compound interest
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Understanding Debt Accumulation',

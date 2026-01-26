@@ -569,12 +569,42 @@ export default function QuestionnairePage() {
       tier: asfnTier,
     };
 
+    // Calculate LCA (Loan Consequence Awareness) scores
+    const lcaQuestions = allQuestions.filter(q => q.id.startsWith('lca'));
+    let lcaRawScore = 0;
+    const lcaMaxScore = 15; // 5 questions, max 3 points each
+
+    lcaQuestions.forEach(q => {
+      const userAnswer = formData[q.id];
+      if (userAnswer && q.lcaPoints) {
+        // Extract option letter (A, B, C, D) from answer like "A) Contact the lender..."
+        const optionLetter = userAnswer.charAt(0);
+        const points = q.lcaPoints[optionLetter] || 0;
+        lcaRawScore += points;
+      }
+    });
+
+    const lcaPercent = (lcaRawScore / lcaMaxScore) * 100;
+
+    const lcaMetadata = {
+      attempted: true,
+      rawScore: lcaRawScore,
+      maxScore: lcaMaxScore,
+      percent: lcaPercent,
+    };
+
+    // Calculate Neurocognitive Index (NCI)
+    // NCI = 60% ASFN + 40% LCA
+    const nciScore = (asfnOverallScore * 0.6) + (lcaPercent * 0.4);
+
     // Finalize session metadata
     const finalSessionMetadata: SessionMetadata = {
       ...sessionMetadata,
       endTime: Date.now(),
       totalTimeMs: Date.now() - sessionMetadata.startTime,
       asfn: asfnMetadata,
+      lca: lcaMetadata,
+      nci: nciScore,
     };
 
     // Prepare submission payload
@@ -638,6 +668,9 @@ export default function QuestionnairePage() {
             asfn_level2_score: asfnLevel2Accuracy,
             asfn_overall_score: asfnOverallScore,
             asfn_tier: asfnTier,
+            lca_raw_score: lcaRawScore,
+            lca_percent: lcaPercent,
+            nci_score: nciScore,
           });
 
         if (applicantError) throw applicantError;
