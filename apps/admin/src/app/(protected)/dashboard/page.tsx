@@ -1515,13 +1515,13 @@ export default function DashboardPage() {
                     <div key={item.name} className="bg-gray-50 rounded-xl p-4">
                       <p className="text-sm text-gray-600 mb-2">{item.name}</p>
                       <p className="text-2xl font-bold text-gray-900 mb-3">
-                        {((item.score || 0) * 100).toFixed(0)}
+                        {(item.score || 0).toFixed(0)}
                         <span className="text-sm text-gray-400 font-normal">/100</span>
                       </p>
                       <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className={`h-full ${item.color} rounded-full`}
-                          style={{ width: `${Math.min((item.score || 0) * 100, 100)}%` }}
+                          style={{ width: `${Math.min(item.score || 0, 100)}%` }}
                         />
                       </div>
                     </div>
