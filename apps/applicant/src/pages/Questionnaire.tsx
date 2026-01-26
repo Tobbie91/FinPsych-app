@@ -536,8 +536,8 @@ export default function QuestionnairePage() {
 
     // Determine tier
     let asfnTier: 'LOW' | 'MEDIUM' | 'HIGH';
-    if (asfnOverallScore >= 80) asfnTier = 'HIGH';
-    else if (asfnOverallScore >= 60) asfnTier = 'MEDIUM';
+    if (asfnOverallScore >= 75) asfnTier = 'HIGH';
+    else if (asfnOverallScore >= 50) asfnTier = 'MEDIUM';
     else asfnTier = 'LOW';
 
     const asfnMetadata = {
