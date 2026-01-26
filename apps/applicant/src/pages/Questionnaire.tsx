@@ -715,6 +715,11 @@ export default function QuestionnairePage() {
     return `${minutes}m ago`;
   };
 
+  // Check if this is the start of the neurocognitive section
+  const isNeurocognitiveStart = (questionId: string): boolean => {
+    return questionId === 'asfn1_1'; // First question in Section G
+  };
+
   // Get module-specific instructions for neurocognitive assessment
   const getModuleInstructions = (questionId: string): { title: string; text: string } | null => {
     if (questionId === 'asfn1_1') {
@@ -824,6 +829,16 @@ export default function QuestionnairePage() {
               <div className="mb-6">
                 <SectionBadge isDemographic={isDemographic} category={currentQuestion.category} description={currentQuestion.categoryDescription} isNeurocognitive={isNeurocognitive} />
               </div>
+
+              {/* Neurocognitive Section Header */}
+              {isNeurocognitiveStart(currentQuestion.id) && (
+                <div className="mb-6 p-6 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white">
+                  <h2 className="text-2xl font-bold mb-2">Section G: Neurocognitive Assessment</h2>
+                  <p className="text-indigo-100 text-sm">
+                    This section includes financial numeracy, loan consequence awareness, and decision-making questions.
+                  </p>
+                </div>
+              )}
 
               {/* Module Instructions */}
               {getModuleInstructions(currentQuestion.id) && (
