@@ -355,7 +355,7 @@ export default function QuestionnairePage() {
   const totalQuestions = questionsToShow.length;
   const currentQuestion = questionsToShow[currentQuestionIndex];
   const isDemographic = currentQuestion?.sectionId === 'section-a';
-  const isNeurocognitive = currentQuestion?.sectionId === 'section-i';
+  const isNeurocognitive = currentQuestion?.sectionId === 'section-g';
 
   // Check if current question is answered
   const isCurrentQuestionAnswered = !!(formData[currentQuestion?.id || ''] && formData[currentQuestion?.id || ''].trim() !== '');
@@ -715,6 +715,35 @@ export default function QuestionnairePage() {
     return `${minutes}m ago`;
   };
 
+  // Get module-specific instructions for neurocognitive assessment
+  const getModuleInstructions = (questionId: string): { title: string; text: string } | null => {
+    if (questionId === 'asfn1_1') {
+      return {
+        title: 'ASFN Level 1: Functional Numeracy',
+        text: 'These questions test basic everyday money skills. You may use a calculator if you need one. Take your time and answer as best you can.',
+      };
+    }
+    if (questionId === 'asfn2_1') {
+      return {
+        title: 'ASFN Level 2: Financial Comparison',
+        text: 'These questions are about comparing financial options. Take your time and choose the option that makes the most financial sense.',
+      };
+    }
+    if (questionId === 'lca1') {
+      return {
+        title: 'Loan Consequence Awareness Test',
+        text: 'These questions test your understanding of debt consequences, risk prioritization, and long-term financial impacts.',
+      };
+    }
+    if (questionId === 'gd1') {
+      return {
+        title: 'Financial Decision-Making',
+        text: 'These final questions help us understand real-world financial decision-making. There are no right or wrong answers - we simply want to understand how you handle everyday financial situations. Please answer honestly based on what you would do.',
+      };
+    }
+    return null;
+  };
+
   // Render question input based on type
   const renderQuestionInput = () => {
     const value = formData[currentQuestion.id] || '';
@@ -795,6 +824,18 @@ export default function QuestionnairePage() {
               <div className="mb-6">
                 <SectionBadge isDemographic={isDemographic} category={currentQuestion.category} description={currentQuestion.categoryDescription} isNeurocognitive={isNeurocognitive} />
               </div>
+
+              {/* Module Instructions */}
+              {getModuleInstructions(currentQuestion.id) && (
+                <div className="mb-6 p-4 rounded-lg bg-purple-50 border border-purple-200">
+                  <h3 className="font-semibold text-purple-900 mb-2">
+                    {getModuleInstructions(currentQuestion.id)!.title}
+                  </h3>
+                  <p className="text-purple-800 text-sm">
+                    {getModuleInstructions(currentQuestion.id)!.text}
+                  </p>
+                </div>
+              )}
 
               {/* Question */}
               <div className="mb-6">

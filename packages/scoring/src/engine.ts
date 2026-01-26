@@ -207,6 +207,32 @@ function scoreFinancialNumeracy(questionId: string, value: string): number {
 }
 
 /**
+ * Score loan consequence awareness questions (points-based system per PDF)
+ * Each question has different point values based on the quality of the answer
+ */
+function scoreLoanConsequenceAwareness(questionId: string, value: string): number {
+  const scoringMap: Record<string, Record<string, number>> = {
+    'lca1': { 'A)': 3, 'B)': 0, 'C)': 1, 'D)': 1 },
+    'lca2': { 'A)': 1, 'B)': 3, 'C)': 2, 'D)': 2 },
+    'lca3': { 'A)': 1, 'B)': 3, 'C)': 0, 'D)': 0 },
+    'lca4': { 'A)': 0, 'B)': 3, 'C)': 1, 'D)': 0 },
+    'lca5': { 'A)': 0, 'B)': 2, 'C)': 3, 'D)': 1 },
+  };
+
+  // Extract option prefix (e.g., "A)" from "A) Contact the lender...")
+  const optionPrefix = value.substring(0, 2);
+  return scoringMap[questionId]?.[optionPrefix] ?? 0;
+}
+
+/**
+ * Gaming detection questions - NOT scored, return 0
+ * These are used for cross-validation only
+ */
+function scoreGamingDetection(): number {
+  return 0; // Gaming detection questions are not scored
+}
+
+/**
  * Score a single question based on its type
  */
 function scoreQuestion(questionId: string, value: string): number {
@@ -239,8 +265,16 @@ function scoreQuestion(questionId: string, value: string): number {
     return scoreDelayDiscounting(value);
   }
 
-  if (questionId === 'q64' || questionId === 'q65') {
+  if (questionId === 'q64' || questionId === 'q65' || questionId.startsWith('asfn')) {
     return scoreFinancialNumeracy(questionId, value);
+  }
+
+  if (construct === 'loan_consequence_awareness') {
+    return scoreLoanConsequenceAwareness(questionId, value);
+  }
+
+  if (construct === 'gaming_detection') {
+    return scoreGamingDetection();
   }
 
   // Default: Likert scale

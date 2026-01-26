@@ -46,6 +46,8 @@ export const GLOBAL_STATS: Record<string, { mean: number; std: number }> = {
   cognitive_reflection: { mean: 0.35, std: 0.48 }, // Binary: correct=1, incorrect=0
   delay_discounting: { mean: 0.45, std: 0.50 }, // Binary: delayed preference=1, immediate=0
   financial_numeracy: { mean: 0.70, std: 0.35 }, // Proportion correct (0-1) - Updated for 12 questions
+  loan_consequence_awareness: { mean: 2.0, std: 0.8 }, // Points-based scoring (0-3 per question)
+  gaming_detection: { mean: 0, std: 0 }, // NOT scored - placeholder for cross-validation
 };
 
 // -----------------------------------------------------------------------------
@@ -68,7 +70,7 @@ export const COUNTRY_STATS: Record<string, { mean: number; std: number }> = {
 // Maps psychological constructs to the 5Cs of Credit
 // -----------------------------------------------------------------------------
 export const FIVE_C_MAP: Record<string, string[]> = {
-  character: ['financial_behaviour', 'payment_history', 'self_control', 'conscientiousness', 'cognitive_reflection', 'delay_discounting'],
+  character: ['financial_behaviour', 'payment_history', 'self_control', 'conscientiousness', 'cognitive_reflection', 'delay_discounting', 'loan_consequence_awareness'],
   capacity: ['emergency_preparedness', 'time_orientation', 'financial_numeracy'],
   capital: ['financial_behaviour', 'social_support'], // savings_habit approximated via financial_behaviour
   consistency: ['conscientiousness', 'emotional_stability'],
@@ -204,6 +206,22 @@ export const QUESTION_CONSTRUCT_MAP: Record<string, string> = {
   asfn2_3: 'financial_numeracy',
   asfn2_4: 'financial_numeracy',
   asfn2_5: 'financial_numeracy',
+  // Loan Consequence Awareness (lca1 - lca5)
+  lca1: 'loan_consequence_awareness',
+  lca2: 'loan_consequence_awareness',
+  lca3: 'loan_consequence_awareness',
+  lca4: 'loan_consequence_awareness',
+  lca5: 'loan_consequence_awareness',
+  // Gaming Detection (gd1 - gd9) - NOT scored, for cross-validation only
+  gd1: 'gaming_detection',
+  gd2: 'gaming_detection',
+  gd3: 'gaming_detection',
+  gd4: 'gaming_detection',
+  gd5: 'gaming_detection',
+  gd6: 'gaming_detection',
+  gd7: 'gaming_detection',
+  gd8: 'gaming_detection',
+  gd9: 'gaming_detection',
 };
 
 // -----------------------------------------------------------------------------

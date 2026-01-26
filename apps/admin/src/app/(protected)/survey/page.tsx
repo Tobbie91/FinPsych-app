@@ -45,6 +45,7 @@ const convertToSurveyFormat = (): Section[] => {
     else if (section.id === 'section-d') category = 'Capital';
     else if (section.id === 'section-e') category = 'Collateral';
     else if (section.id === 'section-f') category = 'Conditions';
+    else if (section.id === 'section-g') category = 'Capital';
     else category = 'Character';
 
     return {

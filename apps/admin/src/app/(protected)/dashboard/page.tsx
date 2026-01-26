@@ -116,6 +116,22 @@ const questionTexts: Record<string, string> = {
   asfn2_3: 'ASFN L2 Q3: Instalment Payment Total Cost',
   asfn2_4: 'ASFN L2 Q4: Investment Growth Comparison',
   asfn2_5: 'ASFN L2 Q5: Real Income Comparison (Inflation)',
+  // Loan Consequence Awareness
+  lca1: 'LCA Q1: Consequence Prioritization Under Stress',
+  lca2: 'LCA Q2: Cascading Consequences Understanding',
+  lca3: 'LCA Q3: Necessity vs Want Borrowing Judgment',
+  lca4: 'LCA Q4: Long-Term Consequence Recognition',
+  lca5: 'LCA Q5: Understanding Debt Accumulation',
+  // Gaming Detection
+  gd1: 'Gaming Detection: Unexpected Windfall',
+  gd2: 'Gaming Detection: Sale Opportunity',
+  gd3: 'Gaming Detection: Expense Tracking',
+  gd4: 'Gaming Detection: Small Amount Choice',
+  gd5: 'Gaming Detection: Medium Amount Choice',
+  gd6: 'Gaming Detection: Large Amount Choice',
+  gd7: 'Gaming Detection: Recent Savings Pattern',
+  gd8: 'Gaming Detection: Interest-Free Loan Offer',
+  gd9: 'Gaming Detection: Competing Obligations',
 };
 
 interface DeviceInfo {
@@ -1586,6 +1602,32 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Loan Consequence Awareness Card */}
+              {scores[selectedApplicant.id]?.construct_scores?.loan_consequence_awareness !== undefined && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Loan Consequence Awareness
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-700">Total Score:</span>
+                      <span className="text-2xl font-bold text-indigo-600">
+                        {((scores[selectedApplicant.id]?.construct_scores?.loan_consequence_awareness || 0) * 15).toFixed(1)}/15
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      Measures understanding of debt consequences, risk prioritization, and compound interest.
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-indigo-500 h-2 rounded-full"
+                        style={{ width: `${Math.min(((scores[selectedApplicant.id]?.construct_scores?.loan_consequence_awareness || 0) / 3) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
