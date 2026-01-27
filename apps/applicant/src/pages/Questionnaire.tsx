@@ -514,12 +514,15 @@ export default function QuestionnairePage() {
   };
 
   const handleSubmit = async (validation: ValidationResult) => {
+    console.log('🚀 handleSubmit called');
     setIsSubmitting(true);
     setError(null);
 
-    // Calculate ASFN scores
-    const asfnLevel1Questions = allQuestions.filter(q => q.id.startsWith('asfn1_'));
-    const asfnLevel2Questions = allQuestions.filter(q => q.id.startsWith('asfn2_'));
+    try {
+      // Calculate ASFN scores
+      console.log('📊 Calculating ASFN scores...');
+      const asfnLevel1Questions = allQuestions.filter(q => q.id.startsWith('asfn1_'));
+      const asfnLevel2Questions = allQuestions.filter(q => q.id.startsWith('asfn2_'));
 
     let asfnLevel1Correct = 0;
     let asfnLevel2Correct = 0;
@@ -570,7 +573,9 @@ export default function QuestionnairePage() {
     };
 
     // Calculate LCA (Loan Consequence Awareness) scores
+    console.log('📊 Calculating LCA scores...');
     const lcaQuestions = allQuestions.filter(q => q.id.startsWith('lca'));
+    console.log('LCA questions found:', lcaQuestions.length);
     let lcaRawScore = 0;
     const lcaMaxScore = 15; // 5 questions, max 3 points each
 
@@ -581,10 +586,14 @@ export default function QuestionnairePage() {
         const optionLetter = userAnswer.charAt(0);
         const points = q.lcaPoints[optionLetter] || 0;
         lcaRawScore += points;
+        console.log(`LCA ${q.id}: ${optionLetter} = ${points} points`);
+      } else if (userAnswer) {
+        console.warn(`LCA ${q.id}: No lcaPoints defined`);
       }
     });
 
     const lcaPercent = (lcaRawScore / lcaMaxScore) * 100;
+    console.log(`LCA Total: ${lcaRawScore}/15 = ${lcaPercent.toFixed(1)}%`);
 
     const lcaMetadata = {
       attempted: true,
@@ -596,6 +605,7 @@ export default function QuestionnairePage() {
     // Calculate Neurocognitive Index (NCI)
     // NCI = 60% ASFN + 40% LCA
     const nciScore = (asfnOverallScore * 0.6) + (lcaPercent * 0.4);
+    console.log(`NCI: (${asfnOverallScore.toFixed(1)} × 0.6) + (${lcaPercent.toFixed(1)} × 0.4) = ${nciScore.toFixed(1)}`);
 
     // Finalize session metadata
     const finalSessionMetadata: SessionMetadata = {
@@ -750,6 +760,12 @@ export default function QuestionnairePage() {
       // No Supabase - just navigate (dev mode)
       console.log('No Supabase configured - skipping database insert');
       navigate('/submitted');
+    }
+    } catch (globalError) {
+      console.error('❌ CRITICAL ERROR in handleSubmit:', globalError);
+      console.error('Error stack:', globalError.stack);
+      setError(`Submission failed: ${globalError.message || 'Unknown error'}. Please check the console and try again.`);
+      setIsSubmitting(false);
     }
   };
 
