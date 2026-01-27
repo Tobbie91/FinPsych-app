@@ -342,6 +342,36 @@ export default function QuestionnairePage() {
 
   const allQuestions = getAllQuestions();
 
+  // TEST MODE: Auto-fill and jump to last question
+  useEffect(() => {
+    const testMode = searchParams.get('test') === 'true';
+    if (testMode && Object.keys(formData).length === 0) {
+      console.log('🧪 TEST MODE: Auto-filling all questions...');
+      const autoFilledData: Record<string, string> = {};
+
+      allQuestions.forEach(q => {
+        if (q.type === 'select' && q.options && q.options.length > 0) {
+          autoFilledData[q.id] = q.options[0];
+        } else if (q.type === 'text') {
+          autoFilledData[q.id] = 'Test';
+        } else if (q.type === 'email') {
+          autoFilledData[q.id] = 'test@example.com';
+        } else if (q.type === 'scale') {
+          autoFilledData[q.id] = '3';
+        }
+      });
+
+      setFormData(autoFilledData);
+      setAsfnLevel2Unlocked(true); // Unlock level 2
+
+      // Jump to second-to-last question so user can click Submit
+      setTimeout(() => {
+        setCurrentQuestionIndex(allQuestions.length - 2);
+        console.log('✅ Jumped to question', allQuestions.length - 1);
+      }, 100);
+    }
+  }, [searchParams]);
+
   // ASFN adaptive logic: Filter questions based on Level 1 performance
   const questionsToShow = allQuestions.filter(q => {
     // Show Level 2 questions only if Level 1 passed
