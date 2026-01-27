@@ -62,6 +62,13 @@ interface SessionMetadata {
     overallScore: number;
     tier: 'LOW' | 'MEDIUM' | 'HIGH';
   };
+  lca?: {
+    attempted: boolean;
+    rawScore: number;
+    maxScore: number;
+    percent: number;
+  };
+  nci?: number;
 }
 
 // Get all questions flattened
@@ -386,9 +393,6 @@ export default function QuestionnairePage() {
   const isDemographic = currentQuestion?.sectionId === 'section-a';
   const isNeurocognitive = currentQuestion?.sectionId === 'section-g';
 
-  // Check if current question is answered
-  const isCurrentQuestionAnswered = !!(formData[currentQuestion?.id || ''] && formData[currentQuestion?.id || ''].trim() !== '');
-
   // Calculate progress
   const answeredQuestions = Object.keys(formData).length;
   const progress = Math.round((answeredQuestions / totalQuestions) * 100);
@@ -530,9 +534,12 @@ export default function QuestionnairePage() {
       console.error('Validation error:', err);
       // If validation fails, submit anyway with a default validation result
       const defaultValidation: ValidationResult = {
-        flags: [],
+        totalChecks: 0,
+        inconsistenciesDetected: 0,
+        severityLevel: 'MINOR',
         consistencyScore: 100,
-        passedValidation: true,
+        flags: [],
+        recommendation: 'PROCEED',
       };
       handleSubmit(defaultValidation);
     }
@@ -788,8 +795,9 @@ export default function QuestionnairePage() {
     }
     } catch (globalError) {
       console.error('❌ CRITICAL ERROR in handleSubmit:', globalError);
-      console.error('Error stack:', globalError.stack);
-      setError(`Submission failed: ${globalError.message || 'Unknown error'}. Please check the console and try again.`);
+      const err = globalError as Error;
+      console.error('Error stack:', err.stack);
+      setError(`Submission failed: ${err.message || 'Unknown error'}. Please check the console and try again.`);
       setIsSubmitting(false);
     }
   };
