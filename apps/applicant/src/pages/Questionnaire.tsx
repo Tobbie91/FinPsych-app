@@ -503,18 +503,8 @@ export default function QuestionnairePage() {
 
   const handleNext = () => {
     console.log('🔥 handleNext FIRED!', { currentQuestionIndex, totalQuestions });
-    alert('Button clicked! Check console.');
 
-    // Check if current question is answered
-    const currentAnswer = formData[currentQuestion?.id || ''];
-    if (!currentAnswer || currentAnswer.trim() === '') {
-      console.log('❌ No answer provided');
-      setError('Please answer this question before proceeding.');
-      return;
-    }
-
-    console.log('✅ Answer provided:', currentAnswer);
-    // Clear error if validation passes
+    // Clear any error
     setError(null);
 
     if (currentQuestionIndex < totalQuestions - 1) {
@@ -968,7 +958,7 @@ export default function QuestionnairePage() {
               </button>
               <button
                 onClick={handleNext}
-                disabled={isSubmitting || !isCurrentQuestionAnswered}
+                disabled={isSubmitting}
                 className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all"
               >
                 {isSubmitting ? 'Submitting...' : currentQuestionIndex === totalQuestions - 1 ? 'Submit' : 'Next'}
