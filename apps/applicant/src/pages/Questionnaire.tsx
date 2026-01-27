@@ -472,23 +472,28 @@ export default function QuestionnairePage() {
   };
 
   const handleNext = () => {
-    console.log('handleNext called', { currentQuestionIndex, totalQuestions });
+    console.log('🔥 handleNext FIRED!', { currentQuestionIndex, totalQuestions });
+    alert('Button clicked! Check console.');
 
     // Check if current question is answered
     const currentAnswer = formData[currentQuestion?.id || ''];
     if (!currentAnswer || currentAnswer.trim() === '') {
+      console.log('❌ No answer provided');
       setError('Please answer this question before proceeding.');
       return;
     }
 
+    console.log('✅ Answer provided:', currentAnswer);
     // Clear error if validation passes
     setError(null);
 
     if (currentQuestionIndex < totalQuestions - 1) {
+      console.log('➡️ Moving to next question');
       setCurrentQuestionIndex((prev) => prev + 1);
     } else {
       // Last question - run validation before submission
-      console.log('Running validation and submit...');
+      console.log('🚀 LAST QUESTION - Running validation and submit...');
+      alert('Submitting!');
       runValidationAndSubmit();
     }
   };
