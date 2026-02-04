@@ -91,7 +91,7 @@ async function testPolicies() {
         character_score: 80,
         capacity_score: 75,
         capital_score: 70,
-        consistency_score: 85,
+        collateral_score: 85,
         conditions_score: 90,
         cwi_raw: 1.5,
         cwi_normalized: 0.75,

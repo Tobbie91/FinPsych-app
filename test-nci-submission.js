@@ -147,7 +147,7 @@ async function testNCI() {
         character_score: 78,
         capacity_score: 72,
         capital_score: 68,
-        consistency_score: 82,
+        collateral_score: 82,
         conditions_score: 76,
         cwi_raw: 1.6,
         cwi_normalized: 0.76,

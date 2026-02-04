@@ -212,7 +212,7 @@ async function createCompleteSubmission() {
         character_score: 88,
         capacity_score: 85,
         capital_score: 90,
-        consistency_score: 87,
+        collateral_score: 87,
         conditions_score: 82,
         cwi_raw: 1.9,
         cwi_normalized: 0.87,

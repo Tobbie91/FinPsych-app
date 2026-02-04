@@ -200,7 +200,7 @@ async function testCompleteSubmission() {
         character_score: 82,
         capacity_score: 78,
         capital_score: 85,
-        consistency_score: 88,
+        collateral_score: 88,
         conditions_score: 75,
         cwi_raw: 1.8,
         cwi_normalized: 0.81,

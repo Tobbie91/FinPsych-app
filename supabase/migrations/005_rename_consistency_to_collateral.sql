@@ -21,6 +21,21 @@ BEGIN
   END IF;
 END $$;
 
+-- 3) Update the five_cs_breakdown view to use collateral_score
+CREATE OR REPLACE VIEW five_cs_breakdown AS
+SELECT
+    a.institution_id,
+    a.country,
+    AVG(s.character_score) as avg_character,
+    AVG(s.capacity_score) as avg_capacity,
+    AVG(s.capital_score) as avg_capital,
+    AVG(s.collateral_score) as avg_collateral,
+    AVG(s.conditions_score) as avg_conditions,
+    COUNT(*) as sample_size
+FROM scores s
+JOIN applicants a ON a.id = s.applicant_id
+GROUP BY a.institution_id, a.country;
+
 -- Verify the rename
 SELECT column_name FROM information_schema.columns
 WHERE table_name='scores' AND column_name='collateral_score';

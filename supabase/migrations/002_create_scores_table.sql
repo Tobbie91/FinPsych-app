@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS scores (
     character_score NUMERIC,
     capacity_score NUMERIC,
     capital_score NUMERIC,
-    consistency_score NUMERIC,
+    collateral_score NUMERIC,
     conditions_score NUMERIC,
 
     -- Final CWI scores
@@ -139,7 +139,7 @@ SELECT
     AVG(s.character_score) as avg_character,
     AVG(s.capacity_score) as avg_capacity,
     AVG(s.capital_score) as avg_capital,
-    AVG(s.consistency_score) as avg_consistency,
+    AVG(s.collateral_score) as avg_collateral,
     AVG(s.conditions_score) as avg_conditions,
     COUNT(*) as sample_size
 FROM scores s

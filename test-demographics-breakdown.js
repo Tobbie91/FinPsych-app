@@ -139,7 +139,7 @@ async function testDemographicsBreakdown() {
         character_score: 92,
         capacity_score: 88,
         capital_score: 95,
-        consistency_score: 90,
+        collateral_score: 90,
         conditions_score: 85,
         cwi_raw: 2.1,
         cwi_normalized: 0.92,
