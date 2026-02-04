@@ -72,8 +72,8 @@ export const COUNTRY_STATS: Record<string, { mean: number; std: number }> = {
 export const FIVE_C_MAP: Record<string, string[]> = {
   character: ['financial_behaviour', 'payment_history', 'self_control', 'conscientiousness', 'cognitive_reflection', 'delay_discounting', 'loan_consequence_awareness'],
   capacity: ['emergency_preparedness', 'time_orientation', 'financial_numeracy'],
-  capital: ['financial_behaviour', 'social_support'], // savings_habit approximated via financial_behaviour
-  consistency: ['conscientiousness', 'emotional_stability'],
+  capital: ['financial_behaviour'], // savings_habit approximated via financial_behaviour
+  collateral: ['social_support', 'financial_behaviour'], // Q59, Q16b, Q16e - social network & alternative resources
   conditions: ['risk_preference', 'locus_of_control'],
 };
 
@@ -82,7 +82,7 @@ export const FIVE_C_WEIGHTS: Record<string, number> = {
   character: 0.20,
   capacity: 0.20,
   capital: 0.20,
-  consistency: 0.20,
+  collateral: 0.20,
   conditions: 0.20,
 };
 

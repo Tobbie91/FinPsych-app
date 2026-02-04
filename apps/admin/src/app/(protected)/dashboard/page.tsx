@@ -190,7 +190,7 @@ interface Score {
   character_score: number;
   capacity_score: number;
   capital_score: number;
-  consistency_score: number;
+  collateral_score: number;
   conditions_score: number;
   construct_scores?: Record<string, number>;
   gaming_flags?: {
@@ -1442,7 +1442,7 @@ export default function DashboardPage() {
                     { name: 'Character', score: scores[selectedApplicant.id].character_score, color: 'bg-blue-500' },
                     { name: 'Capacity', score: scores[selectedApplicant.id].capacity_score, color: 'bg-green-500' },
                     { name: 'Capital', score: scores[selectedApplicant.id].capital_score, color: 'bg-purple-500' },
-                    { name: 'Consistency', score: scores[selectedApplicant.id].consistency_score, color: 'bg-orange-400' },
+                    { name: 'Collateral', score: scores[selectedApplicant.id].collateral_score, color: 'bg-orange-400' },
                     { name: 'Conditions', score: scores[selectedApplicant.id].conditions_score, color: 'bg-gray-800' },
                   ].map((item) => (
                     <div key={item.name} className="bg-gray-50 rounded-xl p-4">

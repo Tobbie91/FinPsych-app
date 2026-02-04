@@ -624,6 +624,12 @@ export default function QuestionnairePage() {
       }
     });
 
+    // LCA overflow protection: cap at 15, log if exceeded
+    if (lcaRawScore > lcaMaxScore) {
+      console.error(`⚠️ LCA OVERFLOW: Raw score ${lcaRawScore} exceeds max ${lcaMaxScore}. Clamping to ${lcaMaxScore}.`);
+      lcaRawScore = lcaMaxScore;
+    }
+
     const lcaPercent = (lcaRawScore / lcaMaxScore) * 100;
     console.log(`LCA Total: ${lcaRawScore}/15 = ${lcaPercent.toFixed(1)}%`);
 
@@ -635,9 +641,9 @@ export default function QuestionnairePage() {
     };
 
     // Calculate Neurocognitive Index (NCI)
-    // NCI = 60% ASFN + 40% LCA
-    const nciScore = (asfnOverallScore * 0.6) + (lcaPercent * 0.4);
-    console.log(`NCI: (${asfnOverallScore.toFixed(1)} × 0.6) + (${lcaPercent.toFixed(1)} × 0.4) = ${nciScore.toFixed(1)}`);
+    // NCI = 50% ASFN + 50% LCA (as per specification)
+    const nciScore = (asfnOverallScore * 0.5) + (lcaPercent * 0.5);
+    console.log(`NCI: (${asfnOverallScore.toFixed(1)} × 0.5) + (${lcaPercent.toFixed(1)} × 0.5) = ${nciScore.toFixed(1)}`);
 
     // Finalize session metadata
     const finalSessionMetadata: SessionMetadata = {
@@ -751,7 +757,7 @@ export default function QuestionnairePage() {
             character_score: scoringResult.fiveCScores.character,
             capacity_score: scoringResult.fiveCScores.capacity,
             capital_score: scoringResult.fiveCScores.capital,
-            consistency_score: scoringResult.fiveCScores.consistency,
+            collateral_score: scoringResult.fiveCScores.collateral,
             conditions_score: scoringResult.fiveCScores.conditions,
             cwi_raw: scoringResult.cwiRaw,
             cwi_normalized: scoringResult.cwiNormalized,

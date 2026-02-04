@@ -46,7 +46,7 @@ export interface FiveCScores {
   character: number;
   capacity: number;
   capital: number;
-  consistency: number;
+  collateral: number;
   conditions: number;
 }
 
@@ -371,14 +371,24 @@ export function applyPCAWeights(constructZScores: ConstructScores): number {
 // -----------------------------------------------------------------------------
 
 /**
- * Aggregate constructs into 5Cs scores
+ * Normalize a raw score (1-5 scale) to 0-100 scale
+ * Formula: ((rawScore - 1) / (5 - 1)) * 100, clamped to [0, 100]
  */
-function aggregate5Cs(constructZScores: ConstructScores): FiveCScores {
+function normalizeToHundred(rawScore: number): number {
+  const normalized = ((rawScore - 1) / (5 - 1)) * 100;
+  return Math.max(0, Math.min(100, normalized));
+}
+
+/**
+ * Aggregate constructs into 5Cs scores (0-100 scale)
+ * Uses raw construct scores, NOT z-scores
+ */
+function aggregate5Cs(constructScores: ConstructScores): FiveCScores {
   const fiveCScores: FiveCScores = {
     character: 0,
     capacity: 0,
     capital: 0,
-    consistency: 0,
+    collateral: 0,
     conditions: 0,
   };
 
@@ -387,16 +397,18 @@ function aggregate5Cs(constructZScores: ConstructScores): FiveCScores {
     let count = 0;
 
     for (const construct of constructs) {
-      const zScore = constructZScores[construct];
-      if (zScore !== undefined) {
+      const rawScore = constructScores[construct];
+      if (rawScore !== undefined) {
         // Weight by PCA weight if available
         const weight = PCA_WEIGHTS[construct] ?? 1;
-        sum += zScore * weight;
+        sum += rawScore * weight;
         count += weight;
       }
     }
 
-    fiveCScores[cCategory as keyof FiveCScores] = count > 0 ? sum / count : 0;
+    // Calculate weighted average, then normalize to 0-100
+    const avgRawScore = count > 0 ? sum / count : 3; // Default to middle (3) if no data
+    fiveCScores[cCategory as keyof FiveCScores] = normalizeToHundred(avgRawScore);
   }
 
   return fiveCScores;
@@ -496,8 +508,8 @@ export function calculateCWI(responses: RawResponses, country: string): ScoringR
   // Step 4: Apply PCA weights (used within 5Cs calculation)
   // Note: PCA weights are applied during 5Cs aggregation
 
-  // Step 5: Aggregate into 5Cs
-  const fiveCScores = aggregate5Cs(constructZScores);
+  // Step 5: Aggregate into 5Cs (using raw scores, normalized to 0-100)
+  const fiveCScores = aggregate5Cs(constructScores);
 
   // Step 6: Calculate raw CWI
   const cwiRaw = calculateCWIRaw(fiveCScores);

@@ -126,7 +126,7 @@ interface Score {
   character_score: number;
   capacity_score: number;
   capital_score: number;
-  consistency_score: number;
+  collateral_score: number;
   conditions_score: number;
   construct_scores: Record<string, number>;
   construct_z_scores: Record<string, number>;
@@ -240,7 +240,7 @@ export default function ApplicantDetailPage() {
     { name: 'Character', score: score.character_score, color: 'bg-blue-500' },
     { name: 'Capacity', score: score.capacity_score, color: 'bg-green-500' },
     { name: 'Capital', score: score.capital_score, color: 'bg-purple-500' },
-    { name: 'Consistency', score: score.consistency_score, color: 'bg-orange-400' },
+    { name: 'Collateral', score: score.collateral_score, color: 'bg-orange-400' },
     { name: 'Conditions', score: score.conditions_score, color: 'bg-gray-800' },
   ].filter(item => item.score !== null && item.score !== undefined && !isNaN(item.score)) : [];
 
@@ -292,7 +292,7 @@ export default function ApplicantDetailPage() {
       rows.push(`Character Score,${score.character_score}`);
       rows.push(`Capacity Score,${score.capacity_score}`);
       rows.push(`Capital Score,${score.capital_score}`);
-      rows.push(`Consistency Score,${score.consistency_score}`);
+      rows.push(`Collateral Score,${score.collateral_score}`);
       rows.push(`Conditions Score,${score.conditions_score}`);
       rows.push(`Model Version,${score.model_version}`);
       rows.push(`Scored At,${score.scored_at}`);

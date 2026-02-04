@@ -35,7 +35,7 @@ interface Score {
   character_score: number;
   capacity_score: number;
   capital_score: number;
-  consistency_score: number;
+  collateral_score: number;
   conditions_score: number;
 }
 
@@ -91,7 +91,7 @@ export default function DashboardPage() {
           const applicantIds = applicantsData.map(a => a.id);
           const { data: scoresData, error: scoresError } = await supabase
             .from('scores')
-            .select('applicant_id, cwi_0_100, risk_band, character_score, capacity_score, capital_score, consistency_score, conditions_score')
+            .select('applicant_id, cwi_0_100, risk_band, character_score, capacity_score, capital_score, collateral_score, conditions_score')
             .in('applicant_id', applicantIds);
 
           if (scoresError) {
