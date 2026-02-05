@@ -21,8 +21,9 @@ BEGIN
   END IF;
 END $$;
 
--- 3) Update the five_cs_breakdown view to use collateral_score
-CREATE OR REPLACE VIEW five_cs_breakdown AS
+-- 3) Drop and recreate the view (CREATE OR REPLACE cannot rename columns)
+DROP VIEW IF EXISTS five_cs_breakdown;
+CREATE VIEW five_cs_breakdown AS
 SELECT
     a.institution_id,
     a.country,
