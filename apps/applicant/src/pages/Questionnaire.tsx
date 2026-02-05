@@ -389,13 +389,17 @@ export default function QuestionnairePage() {
   });
 
   const totalQuestions = questionsToShow.length;
+  const displayTotalQuestions = allQuestions.length; // Always show full count (stable)
   const currentQuestion = questionsToShow[currentQuestionIndex];
   const isDemographic = currentQuestion?.sectionId === 'section-a';
   const isNeurocognitive = currentQuestion?.sectionId === 'section-g';
 
-  // Calculate progress
+  // Calculate progress using full question count for stable display
+  const displayQuestionNumber = currentQuestion
+    ? allQuestions.findIndex(q => q.id === currentQuestion.id) + 1
+    : currentQuestionIndex + 1;
   const answeredQuestions = Object.keys(formData).length;
-  const progress = Math.round((answeredQuestions / totalQuestions) * 100);
+  const progress = Math.round((answeredQuestions / displayTotalQuestions) * 100);
 
   // Track when a new question is shown
   useEffect(() => {
@@ -945,7 +949,7 @@ export default function QuestionnairePage() {
                 />
               </div>
               <div className="flex items-center justify-between mt-3 text-sm text-gray-500">
-                <span>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
+                <span>Question {displayQuestionNumber} of {displayTotalQuestions}</span>
                 <div className="flex items-center gap-1">
                   <CloudUpload className="w-4 h-4" />
                   <span>Auto saved {getTimeSinceLastSave()}</span>

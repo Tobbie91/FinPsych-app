@@ -33,6 +33,8 @@ const questionTexts: Record<string, string> = {
   dem9: 'What is your current housing situation?',
   dem10: 'Do you have an active bank account?',
   dem11: 'Have you taken a loan before?',
+  dem12: 'Do you have any insurance policies?',
+  dem13: 'Do you have any subscription services?',
   // Section B - Financial Behaviour (Q1-Q15)
   q1: 'In the past 12 months, how often did you miss RENT payments?',
   q2: 'In the past 12 months, how often did you miss UTILITY payments?',
@@ -47,10 +49,17 @@ const questionTexts: Record<string, string> = {
   q11: 'I follow a monthly budget.',
   q12: 'I compare prices before making purchases.',
   q13: 'I am able to achieve my financial goals.',
-  q14: 'If an unexpected expense occurred today, which option would you rely on first?',
+  q14a: 'If an unexpected expense occurred today, how likely are you to rely on personal savings?',
+  q14b: 'If an unexpected expense occurred today, how likely are you to sell your assets?',
+  q14c: 'If an unexpected expense occurred today, how likely are you to take a loan?',
   q15: 'How many months of emergency savings do you currently have?',
-  // Section C - Crisis Decision-Making (Q16)
-  q16: 'In a financial crisis, rank the following from 1 (first priority) to 6 (last priority)',
+  // Section C - Crisis Decision-Making (Q16a-Q16f)
+  q16a: 'In a financial crisis, how likely are you to CONTACT YOUR LENDER to discuss options?',
+  q16b: 'In a financial crisis, how likely are you to BORROW FROM FAMILY/FRIENDS?',
+  q16c: 'In a financial crisis, how likely are you to SKIP PAYMENTS temporarily?',
+  q16d: 'In a financial crisis, how likely are you to PRIORITISE OTHER EXPENSES over loan payments?',
+  q16e: 'In a financial crisis, how likely are you to SELL ASSETS (phone, jewelry, equipment)?',
+  q16f: 'In a financial crisis, how likely are you to WORK EXTRA HOURS to earn more money?',
   // Section D - Personality Big Five (Q17-Q41)
   q17: 'I pay attention to details.',
   q18: 'I follow schedules.',
