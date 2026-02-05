@@ -154,12 +154,12 @@ export const sections: Section[] = [
         text: 'What is your approximate monthly income?',
         type: 'select',
         options: [
-          'Less than $500',
-          '$500-$1,000',
-          '$1,001-$2,000',
-          '$2,001-$3,500',
-          '$3,501-$5,000',
-          'Above $5,000'
+          'Less than ₦30,000 / $500',
+          '₦30,000-₦50,000 / $500-$1,000',
+          '₦50,001-₦100,000 / $1,001-$2,000',
+          '₦100,001-₦200,000 / $2,001-$3,500',
+          '₦200,001-₦500,000 / $3,501-$5,000',
+          'Above ₦500,000 / $5,000'
         ],
         isDemographic: true,
         construct: 'demographic',
