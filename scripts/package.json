@@ -1,0 +1,19 @@
+{
+  "name": "@fintech/scripts",
+  "version": "1.0.0",
+  "description": "Administrative scripts for FinPsych Credit App",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "recompute:dry-run": "npx tsx recompute-scores.ts --dry-run --verbose",
+    "recompute:live": "npx tsx recompute-scores.ts --verbose",
+    "recompute:test": "npx tsx recompute-scores.ts --dry-run --limit 5 --verbose"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.10"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.7.2"
+  }
+}

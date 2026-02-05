@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
+import { getQualityBadgeFromRiskLevel, getQualityBadgeFromValidation } from '@fintech/validation';
 
 // Question mapping for display
 const questionTexts: Record<string, string> = {
@@ -163,6 +164,7 @@ interface Applicant {
   institution_id: string;
   device_info?: DeviceInfo;
   quality_score?: number | null;
+  gaming_risk_level?: string | null;
   validation_result?: {
     totalChecks: number;
     inconsistenciesDetected: number;
@@ -178,6 +180,10 @@ interface Applicant {
     recommendation: 'PROCEED' | 'REVIEW' | 'RETAKE';
   } | null;
   response_metadata?: any;
+  nci_score?: number | null;
+  asfn_overall_score?: number | null;
+  lca_raw_score?: number | null;
+  lca_percent?: number | null;
 }
 
 interface Score {
@@ -649,19 +655,26 @@ export default function DashboardPage() {
 
   const handleExport = () => {
     const csv = [
-      ['Name', 'Email', 'Country', 'Age', 'Gender', 'Employment', 'Income', 'CWI Score', 'Risk', 'Submitted'],
-      ...applicants.map(a => [
-        a.full_name || '',
-        a.email || '',
-        a.country || '',
-        a.age_range || '',
-        a.gender || '',
-        a.employment_status || '',
-        a.income_range || '',
-        (a.cwi_score || scores[a.id]?.cwi_0_100 || '').toString(),
-        a.risk_category || scores[a.id]?.risk_band || '',
-        new Date(a.submitted_at).toLocaleDateString(),
-      ])
+      ['Name', 'Email', 'Country', 'Age', 'Gender', 'Employment', 'Income', 'CWI Score', 'Quality', 'Risk', 'Submitted'],
+      ...applicants.map(a => {
+        // Use gaming_risk_level directly if available, else derive from validation_result
+        const badge = a.gaming_risk_level
+          ? getQualityBadgeFromRiskLevel(a.gaming_risk_level)
+          : getQualityBadgeFromValidation(a.validation_result as any);
+        return [
+          a.full_name || '',
+          a.email || '',
+          a.country || '',
+          a.age_range || '',
+          a.gender || '',
+          a.employment_status || '',
+          a.income_range || '',
+          (a.cwi_score || scores[a.id]?.cwi_0_100 || '').toString(),
+          badge ? badge.label : 'N/A',
+          a.risk_category || scores[a.id]?.risk_band || '',
+          new Date(a.submitted_at).toLocaleDateString(),
+        ];
+      })
     ].map(row => row.join(',')).join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -1178,36 +1191,38 @@ export default function DashboardPage() {
                         </td>
                         <td className="py-4 px-4">
                           {(() => {
-                            const qualityScore = applicant.quality_score;
+                            // Use gaming_risk_level directly if available, else derive from validation_result
+                            const gamingRiskLevel = applicant.gaming_risk_level;
                             const validationResult = applicant.validation_result;
 
-                            if (qualityScore === null || qualityScore === undefined) {
+                            // Primary: Use stored gaming_risk_level
+                            // Fallback: Derive from validation_result
+                            const badge = gamingRiskLevel
+                              ? getQualityBadgeFromRiskLevel(gamingRiskLevel)
+                              : getQualityBadgeFromValidation(validationResult as any);
+
+                            if (!badge) {
                               return <span className="text-gray-400 text-sm">N/A</span>;
                             }
 
-                            // Color code based on severity
-                            const color = qualityScore >= 85 ? 'text-green-400' :
-                                         qualityScore >= 65 ? 'text-yellow-400' :
-                                         'text-red-400';
-
-                            const bgColor = qualityScore >= 85 ? 'bg-green-100' :
-                                           qualityScore >= 65 ? 'bg-yellow-100' :
-                                           'bg-red-100';
-
-                            const textColor = qualityScore >= 85 ? 'text-green-700' :
-                                             qualityScore >= 65 ? 'text-yellow-700' :
-                                             'text-red-700';
-
-                            const severity = validationResult?.severityLevel ||
-                                           (qualityScore >= 85 ? 'MINOR' : qualityScore >= 65 ? 'MODERATE' : 'SEVERE');
+                            // Gaming Risk Level Badge Mapping:
+                            // MINIMAL -> EXCELLENT (Green)
+                            // LOW -> GOOD (Light Green)
+                            // MODERATE -> MODERATE (Yellow)
+                            // HIGH -> FLAGGED (Orange)
+                            // SEVERE -> POOR (Red)
+                            const scoreColor = badge.level === 'MINIMAL' || badge.level === 'LOW' ? 'text-green-400' :
+                                              badge.level === 'MODERATE' ? 'text-yellow-400' :
+                                              badge.level === 'HIGH' ? 'text-orange-400' :
+                                              'text-red-400';
 
                             return (
                               <div className="flex items-center gap-2">
-                                <span className={`font-semibold ${color}`}>
-                                  {qualityScore}/100
+                                <span className={`font-semibold ${scoreColor}`}>
+                                  {badge.level}
                                 </span>
-                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${bgColor} ${textColor}`}>
-                                  {severity}
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badge.bgColor} ${badge.textColor}`}>
+                                  {badge.label}
                                 </span>
                               </div>
                             );
@@ -1554,7 +1569,7 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700">Percentage:</span>
                       <span className="text-xl font-bold text-indigo-600">
-                        {selectedApplicant.lca_percent.toFixed(1)}%
+                        {selectedApplicant.lca_percent?.toFixed(1)}%
                       </span>
                     </div>
                     <div className="text-sm text-gray-500">
@@ -1563,7 +1578,7 @@ export default function DashboardPage() {
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-indigo-500 h-2 rounded-full"
-                        style={{ width: `${Math.min(selectedApplicant.lca_percent, 100)}%` }}
+                        style={{ width: `${Math.min(selectedApplicant.lca_percent ?? 0, 100)}%` }}
                       />
                     </div>
                   </div>

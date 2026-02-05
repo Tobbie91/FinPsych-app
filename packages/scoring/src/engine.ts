@@ -286,6 +286,13 @@ function scoreQuestion(questionId: string, value: string): number {
 // -----------------------------------------------------------------------------
 
 /**
+ * Check if a value is an N/A response (should be excluded from scoring)
+ */
+function isNAResponse(value: string): boolean {
+  return value.startsWith('N/A');
+}
+
+/**
  * Aggregate question scores into construct scores
  */
 function aggregateConstructs(responses: RawResponses): ConstructScores {
@@ -293,8 +300,12 @@ function aggregateConstructs(responses: RawResponses): ConstructScores {
   const constructCounts: Record<string, number> = {};
 
   for (const [questionId, value] of Object.entries(responses)) {
-    // Skip demographic questions
-    if (questionId.startsWith('demo')) continue;
+    // Skip demographic questions (both 'demo' prefix for name/email and 'dem' prefix for DEM1-DEM13)
+    if (questionId.startsWith('demo') || questionId.startsWith('dem')) continue;
+
+    // Skip N/A responses - these should not count toward the construct
+    // This ensures Payment History denominator excludes Q4/Q5 when user selects N/A
+    if (isNAResponse(value)) continue;
 
     const construct = QUESTION_CONSTRUCT_MAP[questionId];
     if (!construct) continue;

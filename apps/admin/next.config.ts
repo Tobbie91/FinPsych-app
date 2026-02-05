@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 import path from 'path';
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@fintech/ui', '@fintech/hooks', '@fintech/lib', '@fintech/config', '@fintech/types'],
+  transpilePackages: ['@fintech/ui', '@fintech/hooks', '@fintech/lib', '@fintech/config', '@fintech/types', '@fintech/validation'],
   outputFileTracingRoot: path.join(__dirname, '../../'),
 };
 

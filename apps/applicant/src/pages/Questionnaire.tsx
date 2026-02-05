@@ -9,7 +9,7 @@ import {
   categoryColors,
 } from '../data/questions';
 import { calculateCWI, type RawResponses } from '@fintech/scoring';
-import { validateResponses, type ValidationResult } from '@fintech/validation';
+import { validateResponses, deriveGamingRiskLevel, type ValidationResult } from '@fintech/validation';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -443,6 +443,34 @@ export default function QuestionnairePage() {
     }
   }, [formData, allQuestions, asfnLevel1Complete]);
 
+  // Default Q4/Q5 to N/A based on DEM12/DEM13 responses
+  // Only default when user selects "No, never had one" AND Q4/Q5 hasn't been answered yet
+  // User can still override - this is just a helpful default
+  useEffect(() => {
+    const insuranceStatus = formData['dem12'];
+    const subscriptionStatus = formData['dem13'];
+    const updates: Record<string, string> = {};
+
+    // Default Q4 to N/A only if:
+    // 1. User selected "No, never had one" for insurance
+    // 2. Q4 hasn't been answered yet (empty/undefined)
+    if (insuranceStatus === 'No, never had one' && !formData['q4']) {
+      updates['q4'] = 'N/A (I do not have insurance)';
+    }
+
+    // Default Q5 to N/A only if:
+    // 1. User selected "No, never had one" for subscriptions
+    // 2. Q5 hasn't been answered yet (empty/undefined)
+    if (subscriptionStatus === 'No, never had one' && !formData['q5']) {
+      updates['q5'] = 'N/A (I do not have subscriptions)';
+    }
+
+    // Apply updates if any
+    if (Object.keys(updates).length > 0) {
+      setFormData(prev => ({ ...prev, ...updates }));
+    }
+  }, [formData['dem12'], formData['dem13']]);
+
   // Record metadata when answer changes
   const handleInputChange = useCallback((value: string) => {
     const now = Date.now();
@@ -672,11 +700,11 @@ export default function QuestionnairePage() {
 
     if (supabase) {
       try {
-        // Extract demographics - Updated to match new question IDs (dem1-dem11)
+        // Extract demographics - Updated to match new question IDs (dem1-dem13)
         const demographics = {
           full_name: formData['demo1'],
           email: formData['demo2'],
-          age_range: formData['dem1'],        // DEM1: Age
+          age_range: formData['dem1'],        // DEM1: Age range
           gender: formData['dem2'],           // DEM2: Gender
           education: formData['dem3'],        // DEM3: Education
           country: formData['dem4'],          // DEM4: Location
@@ -684,9 +712,11 @@ export default function QuestionnairePage() {
           income_range: formData['dem6'],     // DEM6: Income
           marital_status: formData['dem7'],   // DEM7: Marital Status
           dependents: formData['dem8'],       // DEM8: Dependents
-          residency_status: formData['dem9'], // DEM9: Housing
+          residency_status: formData['dem9'], // DEM9: Housing status
           has_bank_account: formData['dem10'], // DEM10: Bank Account
           loan_history: formData['dem11'],    // DEM11: Loan History
+          has_insurance: formData['dem12'],   // DEM12: Insurance ownership (for Q4 N/A)
+          has_subscriptions: formData['dem13'], // DEM13: Subscription ownership (for Q5 N/A)
         };
 
         // Insert applicant record
@@ -708,6 +738,7 @@ export default function QuestionnairePage() {
             total_time_ms: finalSessionMetadata.totalTimeMs,
             validation_result: validation,
             quality_score: validation.consistencyScore,
+            gaming_risk_level: deriveGamingRiskLevel(validation),
             response_metadata: {
               session: finalSessionMetadata,
               questions: questionMetadata,
@@ -727,7 +758,7 @@ export default function QuestionnairePage() {
 
         // Insert responses
         const responsesArray = Object.entries(formData)
-          .filter(([key]) => !key.startsWith('demo') && !key.startsWith('dem')) // Exclude demographics (demo1, demo2, dem1-dem11)
+          .filter(([key]) => !key.startsWith('demo') && !key.startsWith('dem')) // Exclude demographics (demo1, demo2, dem1-dem13)
           .map(([questionId, answer]) => ({
             applicant_id: applicantData.id,
             question_id: questionId,

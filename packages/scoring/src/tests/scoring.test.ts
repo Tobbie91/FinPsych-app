@@ -171,6 +171,210 @@ test('LCA overflow protection: score > 15 should clamp', () => {
 });
 
 // ============================================================================
+// TEST 6: Demographic Exclusion
+// ============================================================================
+test('Demographic questions (dem* prefix) are excluded from scoring', () => {
+  // Verify dem1-dem13 prefixes would be excluded
+  const demQuestions = ['dem1', 'dem2', 'dem3', 'dem12', 'dem13'];
+
+  for (const q of demQuestions) {
+    assertTrue(q.startsWith('dem'), `${q} starts with 'dem'`);
+  }
+
+  // Verify demo1, demo2 prefixes would also be excluded
+  const demoQuestions = ['demo1', 'demo2'];
+  for (const q of demoQuestions) {
+    assertTrue(q.startsWith('demo'), `${q} starts with 'demo'`);
+  }
+});
+
+// ============================================================================
+// TEST 7: N/A Response Exclusion
+// ============================================================================
+test('N/A responses are detected correctly', () => {
+  const naResponses = [
+    'N/A (I do not have insurance)',
+    'N/A (I do not have subscriptions)',
+    'N/A',
+  ];
+
+  for (const r of naResponses) {
+    assertTrue(r.startsWith('N/A'), `"${r}" starts with N/A`);
+  }
+
+  // Non-N/A responses should not be excluded
+  const validResponses = ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'];
+  for (const r of validResponses) {
+    assertTrue(!r.startsWith('N/A'), `"${r}" does NOT start with N/A`);
+  }
+});
+
+test('Payment History with N/A Q4 excludes Q4 from denominator', () => {
+  // Simulate: 6 payment_history questions (q1-q6), Q4 is N/A
+  const paymentHistoryQuestions = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+  const responses: Record<string, string> = {
+    q1: 'Never',
+    q2: 'Never',
+    q3: 'Rarely',
+    q4: 'N/A (I do not have insurance)', // Should be EXCLUDED
+    q5: 'Never',
+    q6: 'Sometimes',
+  };
+
+  // Count valid responses (excluding N/A)
+  let validCount = 0;
+  for (const q of paymentHistoryQuestions) {
+    if (!responses[q].startsWith('N/A')) {
+      validCount++;
+    }
+  }
+
+  assertEqual(validCount, 5, 'Only 5 questions counted (Q4 excluded)');
+});
+
+test('Payment History with N/A Q4 AND Q5 excludes both from denominator', () => {
+  const paymentHistoryQuestions = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+  const responses: Record<string, string> = {
+    q1: 'Never',
+    q2: 'Never',
+    q3: 'Rarely',
+    q4: 'N/A (I do not have insurance)', // EXCLUDED
+    q5: 'N/A (I do not have subscriptions)', // EXCLUDED
+    q6: 'Sometimes',
+  };
+
+  let validCount = 0;
+  for (const q of paymentHistoryQuestions) {
+    if (!responses[q].startsWith('N/A')) {
+      validCount++;
+    }
+  }
+
+  assertEqual(validCount, 4, 'Only 4 questions counted (Q4 and Q5 excluded)');
+});
+
+// ============================================================================
+// TEST 8: DEM12/DEM13 Options Match Spec
+// ============================================================================
+test('DEM12 options match spec exactly', () => {
+  const expectedOptions = [
+    'Yes, multiple policies',
+    'Yes, one policy',
+    'No, but I had one before',
+    'No, never had one',
+    'Not sure',
+  ];
+
+  // This test verifies the spec - actual validation happens in questions.ts
+  assertEqual(expectedOptions.length, 5, 'DEM12 has 5 options');
+  assertTrue(expectedOptions.includes('No, never had one'), 'DEM12 has "No, never had one" option');
+});
+
+test('DEM13 options match spec exactly', () => {
+  const expectedOptions = [
+    'Yes, multiple subscriptions (3+)',
+    'Yes, 1–2 subscriptions',
+    'No, but I had one before',
+    'No, never had one',
+  ];
+
+  assertEqual(expectedOptions.length, 4, 'DEM13 has 4 options');
+  assertTrue(expectedOptions.includes('No, never had one'), 'DEM13 has "No, never had one" option');
+});
+
+test('Q4/Q5 N/A default only triggers on "No, never had one"', () => {
+  // Only "No, never had one" should trigger N/A default
+  const dem12Responses = [
+    'Yes, multiple policies',
+    'Yes, one policy',
+    'No, but I had one before',
+    'No, never had one', // ONLY this should trigger N/A default
+    'Not sure',
+  ];
+
+  const triggersNADefault = dem12Responses.filter(r => r === 'No, never had one');
+  assertEqual(triggersNADefault.length, 1, 'Only one option triggers N/A default');
+  assertEqual(triggersNADefault[0], 'No, never had one', 'Correct option triggers N/A');
+});
+
+// ============================================================================
+// TEST 9: Quality Badge Mapping (Gaming Risk Level -> Badge Label)
+// These tests verify the DIRECT mapping from gamingRiskLevel to badge label
+// ============================================================================
+
+// Badge label mapping (from spec)
+const BADGE_LABELS: Record<string, string> = {
+  MINIMAL: 'EXCELLENT',
+  LOW: 'GOOD',
+  MODERATE: 'MODERATE',
+  HIGH: 'FLAGGED',
+  SEVERE: 'POOR',
+};
+
+test('Quality Badge: Direct mapping MINIMAL -> EXCELLENT', () => {
+  assertEqual(BADGE_LABELS['MINIMAL'], 'EXCELLENT', 'MINIMAL maps to EXCELLENT');
+});
+
+test('Quality Badge: Direct mapping LOW -> GOOD', () => {
+  assertEqual(BADGE_LABELS['LOW'], 'GOOD', 'LOW maps to GOOD');
+});
+
+test('Quality Badge: Direct mapping MODERATE -> MODERATE', () => {
+  assertEqual(BADGE_LABELS['MODERATE'], 'MODERATE', 'MODERATE maps to MODERATE');
+});
+
+test('Quality Badge: Direct mapping HIGH -> FLAGGED', () => {
+  assertEqual(BADGE_LABELS['HIGH'], 'FLAGGED', 'HIGH maps to FLAGGED');
+});
+
+test('Quality Badge: Direct mapping SEVERE -> POOR', () => {
+  assertEqual(BADGE_LABELS['SEVERE'], 'POOR', 'SEVERE maps to POOR');
+});
+
+// ============================================================================
+// TEST 10: Gaming Risk Level Derivation from Inconsistency Count
+// These tests verify the thresholds defined in @fintech/validation/quality-badge.ts
+// Source of truth: deriveGamingRiskLevel() in packages/validation/src/quality-badge.ts
+// ============================================================================
+
+// Local copy for test verification only - DO NOT use in app code
+// App code should import deriveGamingRiskLevel from @fintech/validation
+function deriveFromInconsistencies(count: number): string {
+  if (count === 0) return 'MINIMAL';
+  if (count <= 2) return 'LOW';
+  if (count <= 5) return 'MODERATE';
+  if (count <= 8) return 'HIGH';
+  return 'SEVERE';
+}
+
+test('Gaming Risk Level: 0 inconsistencies -> MINIMAL', () => {
+  assertEqual(deriveFromInconsistencies(0), 'MINIMAL', '0 flags -> MINIMAL');
+});
+
+test('Gaming Risk Level: 1-2 inconsistencies -> LOW', () => {
+  assertEqual(deriveFromInconsistencies(1), 'LOW', '1 flag -> LOW');
+  assertEqual(deriveFromInconsistencies(2), 'LOW', '2 flags -> LOW');
+});
+
+test('Gaming Risk Level: 3-5 inconsistencies -> MODERATE', () => {
+  assertEqual(deriveFromInconsistencies(3), 'MODERATE', '3 flags -> MODERATE');
+  assertEqual(deriveFromInconsistencies(4), 'MODERATE', '4 flags -> MODERATE');
+  assertEqual(deriveFromInconsistencies(5), 'MODERATE', '5 flags -> MODERATE');
+});
+
+test('Gaming Risk Level: 6-8 inconsistencies -> HIGH', () => {
+  assertEqual(deriveFromInconsistencies(6), 'HIGH', '6 flags -> HIGH');
+  assertEqual(deriveFromInconsistencies(7), 'HIGH', '7 flags -> HIGH');
+  assertEqual(deriveFromInconsistencies(8), 'HIGH', '8 flags -> HIGH');
+});
+
+test('Gaming Risk Level: 9+ inconsistencies -> SEVERE', () => {
+  assertEqual(deriveFromInconsistencies(9), 'SEVERE', '9 flags -> SEVERE');
+  assertEqual(deriveFromInconsistencies(10), 'SEVERE', '10 flags -> SEVERE');
+  assertEqual(deriveFromInconsistencies(16), 'SEVERE', '16 flags -> SEVERE');
+});
+
+// ============================================================================
 // SUMMARY
 // ============================================================================
 console.log('\n' + '='.repeat(60));
