@@ -10,7 +10,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function testNCI() {
   console.log('🧪 Testing NCI (Neurocognitive Index) Calculation...\n');
-  console.log('Formula: NCI = 60% ASFN + 40% LCA\n');
+  console.log('Formula: NCI = 50% ASFN + 50% LCA\n');
 
   const applicantId = crypto.randomUUID();
   const sessionId = `test-nci-${Date.now()}`;
@@ -191,10 +191,10 @@ async function testNCI() {
     console.log('  lca5: A = 0 points ✗ (correct: C = 3 points)');
     console.log('  Total: 12/15 points = 80%\n');
     console.log('🧠 NCI Calculation:');
-    console.log('  Formula: NCI = (0.6 × ASFN) + (0.4 × LCA)');
-    console.log('  NCI = (0.6 × 72) + (0.4 × 80)');
-    console.log('  NCI = 43.2 + 32');
-    console.log('  NCI = 75.2%\n');
+    console.log('  Formula: NCI = (0.5 × ASFN) + (0.5 × LCA)');
+    console.log('  NCI = (0.5 × 72) + (0.5 × 80)');
+    console.log('  NCI = 36 + 40');
+    console.log('  NCI = 76%\n');
     console.log('🎯 Gaming Detection:');
     console.log('  CWI Score: 76');
     console.log('  NCI Score: 75.2');

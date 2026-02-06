@@ -1555,7 +1555,7 @@ export default function DashboardPage() {
                   const applicantResponses = responses[selectedApplicant.id] || [];
 
                   // ===== GET NEUROCOGNITIVE INDEX (NCI) FROM DATABASE =====
-                  // NCI = 60% ASFN + 40% LCA (as per PDF specification)
+                  // NCI = 50% ASFN + 50% LCA
                   const nciScore = selectedApplicant.nci_score || 0;
 
                   // Determine if there's a significant discrepancy (gaming indicator)
@@ -1767,15 +1767,15 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex justify-between">
-                      <span>ASFN (60% weight):</span>
+                      <span>ASFN (50% weight):</span>
                       <span className="font-medium">{selectedApplicant.asfn_overall_score?.toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>LCA (40% weight):</span>
+                      <span>LCA (50% weight):</span>
                       <span className="font-medium">{selectedApplicant.lca_percent?.toFixed(1)}%</span>
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
-                      Formula: NCI = (0.6 × ASFN) + (0.4 × LCA)
+                      Formula: NCI = (0.5 × ASFN) + (0.5 × LCA)
                     </div>
                   </div>
                 </div>
