@@ -9,13 +9,21 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   AlertTriangle,
   Clock,
   RefreshCw,
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
-import { getQualityBadgeFromRiskLevel, getQualityBadgeFromValidation } from '@fintech/validation';
+import {
+  getQualityBadgeFromRiskLevel,
+  getQualityBadgeFromValidation,
+  getReliabilityFromGamingRisk,
+  calculateFinPsychScore,
+  round1,
+  type DataReliabilityLevel,
+} from '@fintech/validation';
 
 // Question mapping for display
 const questionTexts: Record<string, string> = {
@@ -226,6 +234,22 @@ interface Response {
       newValue: string;
     }>;
   } | null;
+}
+
+// UI Helper for Reliability Badge Styling
+function getReliabilityBadgeStyle(level: DataReliabilityLevel): {
+  bg: string;
+  text: string;
+  icon: 'check' | 'warning';
+} {
+  const styles: Record<DataReliabilityLevel, { bg: string; text: string; icon: 'check' | 'warning' }> = {
+    HIGH: { bg: 'bg-green-100', text: 'text-green-700', icon: 'check' },
+    MODERATE_HIGH: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: 'check' },
+    MODERATE: { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: 'warning' },
+    LOW: { bg: 'bg-orange-100', text: 'text-orange-700', icon: 'warning' },
+    VERY_LOW: { bg: 'bg-red-100', text: 'text-red-700', icon: 'warning' },
+  };
+  return styles[level];
 }
 
 // Pie Chart Component (Full pie, not donut)
@@ -1148,12 +1172,15 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <table className="w-full">
+            {/* Desktop Table View */}
+            <table className="w-full hidden md:table">
               <thead className="bg-[#334155] border-b border-slate-600">
                 <tr>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Applicant</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">CWI Score</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Quality</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">FinPsych Score</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">CWI</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">NCI</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Reliability</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Risk</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Submitted</th>
                 </tr>
@@ -1161,15 +1188,34 @@ export default function DashboardPage() {
               <tbody>
                 {paginatedApplicants.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-12 text-center text-gray-400">
+                    <td colSpan={7} className="py-12 text-center text-gray-400">
                       {applicants.length === 0 ? 'No applicants yet' : 'No applicants match your search'}
                     </td>
                   </tr>
                 ) : (
                   paginatedApplicants.map((applicant) => {
                     const score = scores[applicant.id];
-                    const cwiScore = applicant.cwi_score || score?.cwi_0_100;
+                    const cwiScore = applicant.cwi_score ?? score?.cwi_0_100 ?? null;
+                    const nciScore = applicant.nci_score ?? null;
                     const risk = applicant.risk_category || score?.risk_band;
+                    const consistencyScore = applicant.validation_result?.consistencyScore
+                      ?? applicant.quality_score
+                      ?? null;
+
+                    // FinPsych: prefer backend field, fallback to calculation
+                    const finPsychCalc = calculateFinPsychScore(
+                      cwiScore,
+                      nciScore,
+                      applicant.gaming_risk_level,
+                      consistencyScore
+                    );
+                    const finPsychScore = (applicant as any).finpsych_score ?? finPsychCalc?.score ?? null;
+
+                    // Reliability: prefer backend field, fallback to derivation
+                    const backendReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
+                    const reliabilityInfo = backendReliability
+                      ? { level: backendReliability as DataReliabilityLevel, label: (backendReliability as string).replaceAll('_', '-') }
+                      : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
 
                     return (
                       <tr
@@ -1180,6 +1226,7 @@ export default function DashboardPage() {
                           setActiveTab('individual');
                         }}
                       >
+                        {/* Applicant */}
                         <td className="py-4 px-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-teal-500/20 rounded-full flex items-center justify-center">
@@ -1193,50 +1240,47 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         </td>
+                        {/* FinPsych Score - emphasized */}
                         <td className="py-4 px-4">
-                          <span className="font-medium text-white">
-                            {cwiScore !== null && cwiScore !== undefined ? cwiScore.toFixed(1) : 'N/A'}
+                          <span className="font-bold text-lg text-white">
+                            {finPsychScore !== null ? round1(finPsychScore).toFixed(1) : 'N/A'}
                           </span>
                         </td>
+                        {/* CWI Score - normal */}
                         <td className="py-4 px-4">
-                          {(() => {
-                            // Use gaming_risk_level directly if available, else derive from validation_result
-                            const gamingRiskLevel = applicant.gaming_risk_level;
-                            const validationResult = applicant.validation_result;
-
-                            // Primary: Use stored gaming_risk_level
-                            // Fallback: Derive from validation_result
-                            const badge = gamingRiskLevel
-                              ? getQualityBadgeFromRiskLevel(gamingRiskLevel)
-                              : getQualityBadgeFromValidation(validationResult as any);
-
-                            if (!badge) {
-                              return <span className="text-gray-400 text-sm">N/A</span>;
-                            }
-
-                            // Gaming Risk Level Badge Mapping:
-                            // MINIMAL -> EXCELLENT (Green)
-                            // LOW -> GOOD (Light Green)
-                            // MODERATE -> MODERATE (Yellow)
-                            // HIGH -> FLAGGED (Orange)
-                            // SEVERE -> POOR (Red)
-                            const scoreColor = badge.level === 'MINIMAL' || badge.level === 'LOW' ? 'text-green-400' :
-                                              badge.level === 'MODERATE' ? 'text-yellow-400' :
-                                              badge.level === 'HIGH' ? 'text-orange-400' :
-                                              'text-red-400';
-
-                            return (
-                              <div className="flex items-center gap-2">
-                                <span className={`font-semibold ${scoreColor}`}>
-                                  {badge.level}
-                                </span>
-                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${badge.bgColor} ${badge.textColor}`}>
-                                  {badge.label}
-                                </span>
-                              </div>
-                            );
-                          })()}
+                          <span className="text-gray-300">
+                            {cwiScore !== null ? cwiScore.toFixed(1) : 'N/A'}
+                          </span>
                         </td>
+                        {/* NCI Score - normal */}
+                        <td className="py-4 px-4">
+                          <span className="text-gray-300">
+                            {nciScore !== null ? nciScore.toFixed(1) : 'N/A'}
+                          </span>
+                        </td>
+                        {/* Reliability badge */}
+                        <td className="py-4 px-4">
+                          {reliabilityInfo ? (
+                            (() => {
+                              const style = getReliabilityBadgeStyle(reliabilityInfo.level);
+                              return (
+                                <div className="flex items-center gap-1.5">
+                                  {style.icon === 'check' ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  ) : (
+                                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
+                                  )}
+                                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${style.bg} ${style.text}`}>
+                                    {reliabilityInfo.label}
+                                  </span>
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            <span className="text-gray-400 text-sm">N/A</span>
+                          )}
+                        </td>
+                        {/* Risk badge */}
                         <td className="py-4 px-4">
                           {risk ? (
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -1245,12 +1289,13 @@ export default function DashboardPage() {
                               risk === 'HIGH' ? 'bg-orange-100 text-orange-700' :
                               'bg-red-100 text-red-700'
                             }`}>
-                              {risk.replace('_', ' ')}
+                              {risk.replaceAll('_', ' ')}
                             </span>
                           ) : (
                             <span className="text-gray-400">N/A</span>
                           )}
                         </td>
+                        {/* Submitted date */}
                         <td className="py-4 px-4 text-gray-400">
                           {new Date(applicant.submitted_at).toLocaleDateString('en-US', {
                             month: 'short',
@@ -1264,6 +1309,118 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3 p-4">
+              {paginatedApplicants.length === 0 ? (
+                <div className="py-12 text-center text-gray-400">
+                  {applicants.length === 0 ? 'No applicants yet' : 'No applicants match your search'}
+                </div>
+              ) : (
+                paginatedApplicants.map((applicant) => {
+                  const score = scores[applicant.id];
+                  const cwiScore = applicant.cwi_score ?? score?.cwi_0_100 ?? null;
+                  const nciScore = applicant.nci_score ?? null;
+                  const risk = applicant.risk_category || score?.risk_band;
+                  const consistencyScore = applicant.validation_result?.consistencyScore
+                    ?? applicant.quality_score
+                    ?? null;
+
+                  const finPsychCalc = calculateFinPsychScore(
+                    cwiScore,
+                    nciScore,
+                    applicant.gaming_risk_level,
+                    consistencyScore
+                  );
+                  const finPsychScore = (applicant as any).finpsych_score ?? finPsychCalc?.score ?? null;
+
+                  const backendReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
+                  const reliabilityInfo = backendReliability
+                    ? { level: backendReliability as DataReliabilityLevel, label: (backendReliability as string).replaceAll('_', '-') }
+                    : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
+
+                  return (
+                    <div
+                      key={applicant.id}
+                      className="bg-[#334155] rounded-lg p-4 cursor-pointer hover:bg-[#3d4d63] transition-colors"
+                      onClick={() => {
+                        setSelectedApplicant(applicant);
+                        setActiveTab('individual');
+                      }}
+                    >
+                      {/* Applicant Header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-teal-500/20 rounded-full flex items-center justify-center">
+                          <span className="text-teal-400 font-semibold text-sm">
+                            {getInitials(applicant.full_name)}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-white truncate">{applicant.full_name || 'Unknown'}</p>
+                          <p className="text-sm text-gray-400 truncate">{applicant.email || 'No email'}</p>
+                        </div>
+                      </div>
+
+                      {/* Scores Row */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div>
+                          <p className="text-xs text-gray-400">FinPsych</p>
+                          <p className="font-bold text-white">
+                            {finPsychScore !== null ? round1(finPsychScore).toFixed(1) : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">CWI</p>
+                          <p className="text-gray-300">
+                            {cwiScore !== null ? cwiScore.toFixed(1) : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">NCI</p>
+                          <p className="text-gray-300">
+                            {nciScore !== null ? nciScore.toFixed(1) : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Badges and Date Row */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {/* Reliability Badge */}
+                          {reliabilityInfo && (
+                            (() => {
+                              const style = getReliabilityBadgeStyle(reliabilityInfo.level);
+                              return (
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full flex items-center gap-1 ${style.bg} ${style.text}`}>
+                                  {style.icon === 'check' ? '✓' : '⚠️'} {reliabilityInfo.label}
+                                </span>
+                              );
+                            })()
+                          )}
+                          {/* Risk Badge */}
+                          {risk && (
+                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                              risk === 'LOW' ? 'bg-green-100 text-green-700' :
+                              risk === 'MODERATE' ? 'bg-yellow-100 text-yellow-700' :
+                              risk === 'HIGH' ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {risk.replaceAll('_', ' ')}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {new Date(applicant.submitted_at).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
 
             {/* Pagination */}
             {totalPages > 1 && (

@@ -8,7 +8,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "npx tsx src/tests/reliability.test.ts"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
