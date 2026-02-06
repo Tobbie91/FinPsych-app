@@ -9,7 +9,12 @@ import {
   categoryColors,
 } from '../data/questions';
 import { calculateCWI, type RawResponses } from '@fintech/scoring';
-import { validateResponses, deriveGamingRiskLevel, type ValidationResult } from '@fintech/validation';
+import {
+  validateResponses,
+  deriveGamingRiskLevel,
+  calculateFinPsychScore,
+  type ValidationResult,
+} from '@fintech/validation';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -400,6 +405,11 @@ export default function QuestionnairePage() {
     : currentQuestionIndex + 1;
   const answeredQuestions = Object.keys(formData).length;
   const progress = Math.round((answeredQuestions / displayTotalQuestions) * 100);
+
+  // Check if current question is answered (required to proceed)
+  const isCurrentQuestionAnswered = currentQuestion
+    ? Boolean(formData[currentQuestion.id])
+    : false;
 
   // Track when a new question is shown
   useEffect(() => {
@@ -809,13 +819,24 @@ export default function QuestionnairePage() {
           // Don't fail submission if scoring fails
         }
 
-        // Update applicant with CWI score summary
+        // Calculate FinPsych score now that we have CWI
+        const gamingRiskLevel = deriveGamingRiskLevel(validation);
+        const finPsychResult = calculateFinPsychScore(
+          scoringResult.cwi0100,
+          nciScore,
+          gamingRiskLevel,
+          validation.consistencyScore
+        );
+
+        // Update applicant with CWI score summary and FinPsych score
         await supabase
           .from('applicants')
           .update({
             cwi_score: scoringResult.cwi0100,
             risk_category: scoringResult.riskBand,
             scored_at: scoringResult.scoredAt,
+            finpsych_score: finPsychResult?.score ?? null,
+            data_reliability: finPsychResult?.reliability ?? null,
           })
           .eq('id', applicantData.id);
 
@@ -1007,7 +1028,7 @@ export default function QuestionnairePage() {
               </button>
               <button
                 onClick={handleNext}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isCurrentQuestionAnswered}
                 className="px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all"
               >
                 {isSubmitting ? 'Submitting...' : currentQuestionIndex === totalQuestions - 1 ? 'Submit' : 'Next'}
