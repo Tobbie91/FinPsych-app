@@ -374,28 +374,18 @@ function aggregateConstructs(responses: RawResponses): ConstructScores {
  * @returns NCI score (0-100), or null if minimum required constructs missing
  */
 export function calculateNCI(constructScores: ConstructScores): number | null {
-  const cogReflection = constructScores['cognitive_reflection'];
-  const delayDisc = constructScores['delay_discounting'];
   const finNum = constructScores['financial_numeracy'];
   const lca = constructScores['loan_consequence_awareness'];
 
-  // Minimum required: financial_numeracy AND loan_consequence_awareness
+  // Both required
   if (finNum === undefined || lca === undefined) {
     return null;
   }
 
-  // ASFN: Calculate based on available constructs
-  let asfnPercent: number;
-  if (cogReflection !== undefined && delayDisc !== undefined) {
-    // Full NCI: all 3 neurocognitive constructs (new questionnaires)
-    asfnPercent = ((cogReflection + delayDisc + finNum) / 3) * 100;
-  } else {
-    // Legacy NCI: only financial_numeracy available (old questionnaires)
-    // Use financial_numeracy directly as ASFN proxy
-    asfnPercent = finNum * 100;
-  }
+  // ASFN = financial_numeracy proportion correct (0-1) scaled to 0-100
+  const asfnPercent = finNum * 100;
 
-  // LCA: normalize from 0-3 scale to 0-100
+  // LCA: normalize from 0-3 mean to 0-100
   const lcaPercent = (lca / 3) * 100;
 
   // NCI = 50% ASFN + 50% LCA

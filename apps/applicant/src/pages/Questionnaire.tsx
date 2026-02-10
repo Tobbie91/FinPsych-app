@@ -106,7 +106,7 @@ function CategoryBadge({ category, description, isNeurocognitive }: { category: 
   }
 
   // Regular CWI questions
-  const displayText = description ? `CWI - ${category} - ${description}` : `CWI - ${category}`;
+  const displayText = `CWI - ${category}`;
 
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
