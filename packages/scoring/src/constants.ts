@@ -30,22 +30,35 @@ export const PCA_WEIGHTS: Record<string, number> = {
 // Used for construct z-score standardization
 // -----------------------------------------------------------------------------
 export const GLOBAL_STATS: Record<string, { mean: number; std: number }> = {
-  financial_behaviour: { mean: 3.45, std: 0.82 },
-  payment_history: { mean: 2.10, std: 0.95 }, // Lower is better (reverse scored)
+  // CHARACTER constructs
   self_control: { mean: 3.28, std: 0.78 },
   conscientiousness: { mean: 3.65, std: 0.71 },
+  agreeableness: { mean: 3.55, std: 0.68 },
   emotional_stability: { mean: 2.85, std: 0.88 }, // Lower raw = more stable (reverse scored)
+  extraversion: { mean: 3.15, std: 0.89 },
+
+  // CAPACITY constructs
+  payment_history: { mean: 2.10, std: 0.95 }, // Lower is better (reverse scored)
+  financial_management: { mean: 3.45, std: 0.82 }, // Renamed from financial_behaviour
+  crisis_management: { mean: 3.20, std: 0.90 }, // NEW: Q6, Q50
+  financial_integrity: { mean: 3.50, std: 0.85 }, // NEW: Q16a, Q16c, Q16d, Q16f
+
+  // CAPITAL constructs
+  emergency_preparedness: { mean: 2.80, std: 1.05 },
+
+  // COLLATERAL constructs
+  social_collateral: { mean: 2.45, std: 1.12 }, // Renamed from social_support
+
+  // CONDITIONS constructs
+  openness: { mean: 3.42, std: 0.75 },
+  future_orientation: { mean: 3.40, std: 0.85 }, // Renamed from time_orientation
   risk_preference: { mean: 2.95, std: 0.92 },
   locus_of_control: { mean: 0.72, std: 0.25 }, // Binary: internal=1, external=0
-  social_support: { mean: 2.45, std: 1.12 },
-  emergency_preparedness: { mean: 2.80, std: 1.05 },
-  time_orientation: { mean: 3.40, std: 0.85 },
-  agreeableness: { mean: 3.55, std: 0.68 },
-  openness: { mean: 3.42, std: 0.75 },
-  extraversion: { mean: 3.15, std: 0.89 },
+
+  // NCI constructs (not part of CWI 5Cs)
   cognitive_reflection: { mean: 0.35, std: 0.48 }, // Binary: correct=1, incorrect=0
   delay_discounting: { mean: 0.45, std: 0.50 }, // Binary: delayed preference=1, immediate=0
-  financial_numeracy: { mean: 0.70, std: 0.35 }, // Proportion correct (0-1) - Updated for 12 questions
+  financial_numeracy: { mean: 0.70, std: 0.35 }, // Proportion correct (0-1)
   loan_consequence_awareness: { mean: 2.0, std: 0.8 }, // Points-based scoring (0-3 per question)
   gaming_detection: { mean: 0, std: 0 }, // NOT scored - placeholder for cross-validation
 };
@@ -60,7 +73,9 @@ export const COUNTRY_STATS: Record<string, { mean: number; std: number }> = {
   Ghana: { mean: -0.08, std: 0.94 },
   'South Africa': { mean: 0.05, std: 0.96 },
   'United States': { mean: 0.12, std: 1.02 },
+  USA: { mean: 0.12, std: 1.02 }, // Alias for United States
   'United Kingdom': { mean: 0.08, std: 0.98 },
+  UK: { mean: 0.08, std: 0.98 }, // Alias for United Kingdom
   Canada: { mean: 0.10, std: 1.00 },
   Other: { mean: 0.00, std: 1.00 }, // Default/fallback
 };
@@ -68,13 +83,35 @@ export const COUNTRY_STATS: Record<string, { mean: number; std: number }> = {
 // -----------------------------------------------------------------------------
 // 5Cs CONSTRUCT MAPPING
 // Maps psychological constructs to the 5Cs of Credit
+// NOTE: NCI constructs (cognitive_reflection, delay_discounting, financial_numeracy,
+//       loan_consequence_awareness, gaming_detection) are NOT included in CWI
 // -----------------------------------------------------------------------------
 export const FIVE_C_MAP: Record<string, string[]> = {
-  character: ['financial_behaviour', 'payment_history', 'self_control', 'conscientiousness', 'cognitive_reflection', 'delay_discounting', 'loan_consequence_awareness'],
-  capacity: ['emergency_preparedness', 'time_orientation', 'financial_numeracy'],
-  capital: ['financial_behaviour'], // savings_habit approximated via financial_behaviour
-  collateral: ['social_support', 'financial_behaviour'], // Q59, Q16b, Q16e - social network & alternative resources
-  conditions: ['risk_preference', 'locus_of_control'],
+  character: [
+    'self_control',         // Q47-Q53 excluding Q50 (Financial Discipline)
+    'conscientiousness',    // Q17-Q21
+    'agreeableness',        // Q27-Q31
+    'emotional_stability',  // Q22-Q26
+    'openness',             // Q32-Q36 (per spec: CHARACTER has 6 constructs)
+    'extraversion',         // Q37-Q41
+  ],
+  capacity: [
+    'payment_history',      // Q1-Q5, Q10
+    'financial_management', // Q7-Q9, Q11-Q13
+    'crisis_management',    // Q6, Q50
+    'financial_integrity',  // Q16a, Q16c, Q16d, Q16f
+  ],
+  capital: [
+    'emergency_preparedness', // Q14a, Q14b, Q14c, Q15
+  ],
+  collateral: [
+    'social_collateral',    // Q59, Q16b, Q16e
+  ],
+  conditions: [
+    'future_orientation',   // Q60-Q61 (per spec: CONDITIONS has 3 constructs)
+    'risk_preference',      // Q42-Q46
+    'locus_of_control',     // Q54-Q58
+  ],
 };
 
 // 5Cs weights (equal weighting - policy-neutral default)
@@ -110,90 +147,133 @@ export const LIKERT_MAP: Record<string, number> = {
 };
 
 // -----------------------------------------------------------------------------
+// LIKELIHOOD SCALE MAPPING
+// Used for Q14a-c, Q16a-f
+// -----------------------------------------------------------------------------
+export const LIKELIHOOD_MAP: Record<string, number> = {
+  'Very unlikely': 1,
+  'Unlikely': 2,
+  'Neutral': 3,
+  'Likely': 4,
+  'Very likely': 5,
+};
+
+// -----------------------------------------------------------------------------
 // QUESTION TO CONSTRUCT MAPPING
 // Maps question IDs to their constructs
 // -----------------------------------------------------------------------------
 export const QUESTION_CONSTRUCT_MAP: Record<string, string> = {
-  // Payment History (q1-q6)
-  q1: 'payment_history',
-  q2: 'payment_history',
-  q3: 'payment_history',
-  q4: 'payment_history',
-  q5: 'payment_history',
-  q6: 'payment_history',
-  // Financial Behaviour (q7-q13)
-  q7: 'financial_behaviour',
-  q8: 'financial_behaviour',
-  q9: 'financial_behaviour',
-  q10: 'financial_behaviour',
-  q11: 'financial_behaviour',
-  q12: 'financial_behaviour',
-  q13: 'financial_behaviour',
-  // Emergency Preparedness (q14-q15)
-  q14: 'emergency_preparedness',
-  q15: 'emergency_preparedness',
-  // Crisis Decision Making (q16)
-  q16: 'crisis_decision_making',
+  // ==========================================================================
+  // CHARACTER CONSTRUCTS
+  // ==========================================================================
+  // Self Control / Financial Discipline (q47-q53, excluding q50)
+  q47: 'self_control',
+  q48: 'self_control',
+  q49: 'self_control',
+  q51: 'self_control',
+  q52: 'self_control',
+  q53: 'self_control',
   // Conscientiousness (q17-q21)
   q17: 'conscientiousness',
   q18: 'conscientiousness',
   q19: 'conscientiousness',
   q20: 'conscientiousness',
   q21: 'conscientiousness',
-  // Emotional Stability (q22-q26)
-  q22: 'emotional_stability',
-  q23: 'emotional_stability',
-  q24: 'emotional_stability',
-  q25: 'emotional_stability',
-  q26: 'emotional_stability',
   // Agreeableness (q27-q31)
   q27: 'agreeableness',
   q28: 'agreeableness',
   q29: 'agreeableness',
   q30: 'agreeableness',
   q31: 'agreeableness',
-  // Openness (q32-q36)
-  q32: 'openness',
-  q33: 'openness',
-  q34: 'openness',
-  q35: 'openness',
-  q36: 'openness',
+  // Emotional Stability (q22-q26)
+  q22: 'emotional_stability',
+  q23: 'emotional_stability',
+  q24: 'emotional_stability',
+  q25: 'emotional_stability',
+  q26: 'emotional_stability',
   // Extraversion (q37-q41)
   q37: 'extraversion',
   q38: 'extraversion',
   q39: 'extraversion',
   q40: 'extraversion',
   q41: 'extraversion',
+
+  // ==========================================================================
+  // CAPACITY CONSTRUCTS
+  // ==========================================================================
+  // Payment History (q1-q5, q10) - NOTE: q10 is NOT reverse scored
+  q1: 'payment_history',
+  q2: 'payment_history',
+  q3: 'payment_history',
+  q4: 'payment_history',
+  q5: 'payment_history',
+  q10: 'payment_history',
+  // Financial Management (q7-q9, q11-q13) - renamed from financial_behaviour
+  q7: 'financial_management',
+  q8: 'financial_management',
+  q9: 'financial_management',
+  q11: 'financial_management',
+  q12: 'financial_management',
+  q13: 'financial_management',
+  // Crisis Management (q6, q50)
+  q6: 'crisis_management',
+  q50: 'crisis_management',
+  // Financial Integrity (q16a, q16c, q16d, q16f)
+  q16a: 'financial_integrity',
+  q16c: 'financial_integrity',
+  q16d: 'financial_integrity',
+  q16f: 'financial_integrity',
+
+  // ==========================================================================
+  // CAPITAL CONSTRUCTS
+  // ==========================================================================
+  // Emergency Preparedness (q14a, q14b, q14c, q15)
+  q14a: 'emergency_preparedness',
+  q14b: 'emergency_preparedness',
+  q14c: 'emergency_preparedness',
+  q15: 'emergency_preparedness',
+
+  // ==========================================================================
+  // COLLATERAL CONSTRUCTS
+  // ==========================================================================
+  // Social Collateral (q59, q16b, q16e) - renamed from social_support
+  q59: 'social_collateral',
+  q16b: 'social_collateral',
+  q16e: 'social_collateral',
+
+  // ==========================================================================
+  // CONDITIONS CONSTRUCTS
+  // ==========================================================================
+  // Openness (q32-q36)
+  q32: 'openness',
+  q33: 'openness',
+  q34: 'openness',
+  q35: 'openness',
+  q36: 'openness',
+  // Future Orientation (q60-q61) - renamed from time_orientation
+  q60: 'future_orientation',
+  q61: 'future_orientation',
   // Risk Preference (q42-q46)
   q42: 'risk_preference',
   q43: 'risk_preference',
   q44: 'risk_preference',
   q45: 'risk_preference',
   q46: 'risk_preference',
-  // Self Control (q47-q53)
-  q47: 'self_control',
-  q48: 'self_control',
-  q49: 'self_control',
-  q50: 'self_control',
-  q51: 'self_control',
-  q52: 'self_control',
-  q53: 'self_control',
   // Locus of Control (q54-q58)
   q54: 'locus_of_control',
   q55: 'locus_of_control',
   q56: 'locus_of_control',
   q57: 'locus_of_control',
   q58: 'locus_of_control',
-  // Social Support (q59)
-  q59: 'social_support',
-  // Time Orientation (q60-q61)
-  q60: 'time_orientation',
-  q61: 'time_orientation',
-  // Neurocognitive Questions (q62-q65)
-  q62: 'cognitive_reflection', // Bat & ball problem
-  q63: 'delay_discounting', // Delay preference
-  q64: 'financial_numeracy', // Change calculation
-  q65: 'financial_numeracy', // Lender comparison
+
+  // ==========================================================================
+  // NCI CONSTRUCTS (Not part of CWI 5Cs calculation)
+  // ==========================================================================
+  // Neurocognitive Questions (q62-q65) - NCI only
+  q62: 'cognitive_reflection',
+  q63: 'delay_discounting',
+  q64: 'financial_numeracy',
+  q65: 'financial_numeracy',
   // ASFN Level 1: Functional Numeracy (asfn1_1 - asfn1_5)
   asfn1_1: 'financial_numeracy',
   asfn1_2: 'financial_numeracy',
@@ -227,14 +307,21 @@ export const QUESTION_CONSTRUCT_MAP: Record<string, string> = {
 // -----------------------------------------------------------------------------
 // REVERSE SCORED QUESTIONS
 // These questions are negatively framed (higher raw = worse outcome)
+// NOTE: Q10 "I pay my bills on time" is NOT reversed (only Q1-Q5 missed payments)
 // -----------------------------------------------------------------------------
 export const REVERSE_SCORED_QUESTIONS = new Set([
-  // Payment history - missed payments (higher = worse)
-  'q1', 'q2', 'q3', 'q4', 'q5', 'q6',
-  // Emotional stability - stress/anxiety (higher = worse)
+  // Payment History - missed payments only (higher = worse)
+  'q1', 'q2', 'q3', 'q4', 'q5',
+  // Crisis Management - renegotiating is a negative signal
+  'q6',
+  // Emotional Stability - stress/anxiety (higher = worse)
   'q22', 'q23', 'q24', 'q25', 'q26',
-  // Self control - impulsivity (higher = worse)
+  // Self Control - impulsivity (higher = worse)
   'q48', 'q49',
+  // Financial Integrity - skip payments & prioritize other expenses (higher = worse)
+  'q16c', 'q16d',
+  // Emergency Preparedness - taking a loan is worse
+  'q14c',
 ]);
 
 // -----------------------------------------------------------------------------

@@ -534,10 +534,16 @@ function calculateCWIRaw(fiveCScores: FiveCScores): number | null {
 
 /**
  * Apply country normalization to CWI
+ * cwiRaw is on 0-100 scale, but COUNTRY_STATS expects 1-5 scale
+ * So we convert back to 1-5 before normalizing
  */
 function normalizeByCountry(cwiRaw: number, country: string): number {
+  // Convert from 0-100 scale back to 1-5 scale
+  // Formula: (value / 100) * 4 + 1
+  const cwiRaw_1to5 = (cwiRaw / 100) * 4 + 1;
+
   const stats = COUNTRY_STATS[country] ?? COUNTRY_STATS['Other'];
-  return (cwiRaw - stats.mean) / stats.std;
+  return (cwiRaw_1to5 - stats.mean) / stats.std;
 }
 
 /**
