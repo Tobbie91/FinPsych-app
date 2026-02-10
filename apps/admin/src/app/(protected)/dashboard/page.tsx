@@ -1645,7 +1645,7 @@ export default function DashboardPage() {
 
               {/* Five Cs Analysis - Gray card style like screenshot */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Five Cs Analysis</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-6">CWI</h3>
                 <div className="grid grid-cols-5 gap-4">
                   {[
                     { name: 'Character', score: scores[selectedApplicant.id].character_score, color: 'bg-blue-500' },
@@ -1655,7 +1655,8 @@ export default function DashboardPage() {
                     { name: 'Conditions', score: scores[selectedApplicant.id].conditions_score, color: 'bg-gray-800' },
                   ].map((item) => (
                     <div key={item.name} className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-sm text-gray-600 mb-2">{item.name}</p>
+                      <p className="text-xs text-gray-400 mb-0.5">CWI</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">{item.name}</p>
                       <p className="text-2xl font-bold text-gray-900 mb-3">
                         {(item.score || 0).toFixed(0)}
                         <span className="text-sm text-gray-400 font-normal">/100</span>

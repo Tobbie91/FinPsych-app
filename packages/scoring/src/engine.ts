@@ -19,7 +19,6 @@ import {
   COUNTRY_STATS,
   FIVE_C_MAP,
   FIVE_C_WEIGHTS,
-  RISK_BANDS,
   LIKERT_MAP,
   LIKELIHOOD_MAP,
   QUESTION_CONSTRUCT_MAP,
@@ -546,16 +545,6 @@ function normalizeByCountry(cwiRaw: number, country: string): number {
   return (cwiRaw_1to5 - stats.mean) / stats.std;
 }
 
-/**
- * Convert z-score to 0-100 scale
- */
-function convertTo0100(zScore: number): number {
-  // Z-score typically ranges from -3 to +3
-  // Map to 0-100 with 50 as center
-  const scaled = (zScore + 3) / 6 * 100;
-  return Math.max(0, Math.min(100, Math.round(scaled * 10) / 10));
-}
-
 // -----------------------------------------------------------------------------
 // STEP 8: RISK BAND ASSIGNMENT
 // -----------------------------------------------------------------------------
@@ -579,18 +568,6 @@ function zScoreToPercentile(z: number): number {
   const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-z * z);
 
   return 0.5 * (1.0 + sign * y);
-}
-
-/**
- * Assign risk band based on percentile
- */
-function assignRiskBand(percentile: number): string {
-  for (const band of RISK_BANDS) {
-    if (percentile >= band.minPercentile) {
-      return band.band;
-    }
-  }
-  return 'VERY_HIGH';
 }
 
 // -----------------------------------------------------------------------------
@@ -623,11 +600,19 @@ export function calculateCWI(responses: RawResponses, country: string): ScoringR
   let riskBand = 'UNKNOWN';
 
   if (cwiRaw !== null) {
+    // cwi0100 is the weighted mean of Five Cs, already on 0-100 scale
+    cwi0100 = Math.round(cwiRaw * 10) / 10;
+
+    // Keep z-score normalization for reference only (not used for display)
     cwiNormalized = normalizeByCountry(cwiRaw, country);
-    cwi0100 = convertTo0100(cwiNormalized);
     riskPercentile = zScoreToPercentile(cwiNormalized);
-    riskBand = assignRiskBand(riskPercentile);
     riskPercentile = Math.round(riskPercentile * 100) / 100;
+
+    // Assign risk band directly from 0-100 score
+    if (cwi0100 >= 75) riskBand = 'LOW';
+    else if (cwi0100 >= 50) riskBand = 'MODERATE';
+    else if (cwi0100 >= 25) riskBand = 'HIGH';
+    else riskBand = 'VERY_HIGH';
   }
 
   return {

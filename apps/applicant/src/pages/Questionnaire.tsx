@@ -329,6 +329,12 @@ export default function QuestionnairePage() {
   const [lastSaved, setLastSaved] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'info' | 'success' | 'error' = 'info', duration = 3000) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), duration);
+  };
 
   // ASFN adaptive logic state
   const [asfnLevel1Complete, setAsfnLevel1Complete] = useState(false);
@@ -559,7 +565,7 @@ export default function QuestionnairePage() {
     } else {
       // Last question - run validation before submission
       console.log('🚀 LAST QUESTION - Running validation and submit...');
-      alert('Submitting!');
+      showToast('Submitting your assessment...', 'info', 5000);
       runValidationAndSubmit();
     }
   };
@@ -927,6 +933,20 @@ export default function QuestionnairePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1a2332] via-[#1e2a3d] to-[#0f1419] flex flex-col">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg text-white text-sm font-medium flex items-center gap-2 transition-all duration-300 ${
+          toast.type === 'success' ? 'bg-teal-600' :
+          toast.type === 'error'   ? 'bg-red-600' :
+                                     'bg-slate-700 border border-slate-500'
+        }`}>
+          {toast.type === 'success' && <span>✓</span>}
+          {toast.type === 'error'   && <span>✕</span>}
+          {toast.type === 'info'    && <span className="animate-spin inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full" />}
+          {toast.message}
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-[#1e2a3d]/50 border-b border-slate-700/50 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
