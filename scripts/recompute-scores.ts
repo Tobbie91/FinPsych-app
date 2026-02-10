@@ -19,8 +19,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { calculateCWI, type RawResponses, type ScoringResult } from '../packages/scoring/src/engine';
-import { validateResponses, deriveGamingRiskLevel } from '../packages/validation/src/index';
+import { calculateCWI, calculateNCI, type RawResponses, type ScoringResult } from '../packages/scoring/src/engine';
+import { validateResponses, deriveGamingRiskLevel, calculateFinPsychScore } from '../packages/validation/src/index';
 
 // =============================================================================
 // CONFIGURATION
@@ -292,14 +292,6 @@ function computeLCAScores(responses: RawResponses): {
   return { rawScore, percent };
 }
 
-/**
- * Compute NCI score
- * NCI = 50% ASFN + 50% LCA (Batch 1 fix: was 60/40, now 50/50)
- */
-function computeNCI(asfnOverall: number, lcaPercent: number): number {
-  return (asfnOverall * 0.5) + (lcaPercent * 0.5);
-}
-
 // =============================================================================
 // MAIN RECOMPUTE FUNCTION
 // =============================================================================
@@ -433,15 +425,23 @@ async function recomputeScores(options: {
       // 2. LCA scores
       const lca = computeLCAScores(rawResponses);
 
-      // 3. NCI score (50% ASFN + 50% LCA)
-      const nciScore = computeNCI(asfn.overallScore, lca.percent);
+      // 3. CWI score (calculate first to get construct scores)
+      const cwiResult = calculateCWI(rawResponses, applicant.country || 'NG');
 
-      // 4. Validation and gaming flags
+      // 4. NCI score (calculated from construct scores)
+      const nciScore = calculateNCI(cwiResult.constructScores);
+
+      // 5. Validation and gaming flags
       const validation = validateResponses(rawResponses);
       const gamingRiskLevel = deriveGamingRiskLevel(validation);
 
-      // 5. CWI/FinPsych score (using current scoring engine)
-      const cwiResult = calculateCWI(rawResponses, applicant.country || 'NG');
+      // 6. FinPsych score (adaptive weighted composite of CWI and NCI)
+      const finPsychResult = calculateFinPsychScore(
+        cwiResult.cwi0100,
+        nciScore,
+        gamingRiskLevel,
+        validation.consistencyScore
+      );
 
       // Store new values
       result.newValues = {
@@ -457,12 +457,15 @@ async function recomputeScores(options: {
         cwi_score: cwiResult.cwi0100,
         risk_category: cwiResult.riskBand,
         five_cs: cwiResult.fiveCScores,
+        finpsych_score: finPsychResult?.score ?? null,
+        data_reliability: finPsychResult?.reliability ?? null,
       };
 
       if (verbose) {
         console.log(`\n[PROCESS] ${applicant.id} (${applicant.email || 'no email'})`);
-        console.log(`  Old NCI: ${applicant.nci_score?.toFixed(2) || 'N/A'} -> New NCI: ${nciScore.toFixed(2)}`);
+        console.log(`  Old NCI: ${applicant.nci_score?.toFixed(2) || 'N/A'} -> New NCI: ${nciScore?.toFixed(2) ?? 'N/A'}`);
         console.log(`  Old CWI: ${applicant.cwi_score?.toFixed(2) || 'N/A'} -> New CWI: ${cwiResult.cwi0100.toFixed(2)}`);
+        console.log(`  FinPsych: ${finPsychResult?.score?.toFixed(2) ?? 'N/A'} (${finPsychResult?.reliability ?? 'N/A'})`);
         console.log(`  Gaming Risk: ${gamingRiskLevel}`);
       }
 
@@ -489,6 +492,8 @@ async function recomputeScores(options: {
             lca_raw_score: lca.rawScore,
             lca_percent: lca.percent,
             nci_score: nciScore,
+            finpsych_score: finPsychResult?.score ?? null,
+            data_reliability: finPsychResult?.reliability ?? null,
           })
           .eq('id', applicant.id);
 

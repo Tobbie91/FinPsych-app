@@ -3,7 +3,7 @@
  * Exports all scoring functionality
  */
 
-export { calculateCWI, MODEL_VERSION } from './engine';
+export { calculateCWI, calculateNCI, MODEL_VERSION } from './engine';
 export type { RawResponses, ConstructScores, FiveCScores, ScoringResult } from './engine';
 
 export {

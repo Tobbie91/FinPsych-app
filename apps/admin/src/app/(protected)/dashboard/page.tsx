@@ -1202,20 +1202,33 @@ export default function DashboardPage() {
                       ?? applicant.quality_score
                       ?? null;
 
-                    // FinPsych: prefer backend field, fallback to calculation
-                    const finPsychCalc = calculateFinPsychScore(
-                      cwiScore,
-                      nciScore,
-                      applicant.gaming_risk_level,
-                      consistencyScore
-                    );
-                    const finPsychScore = (applicant as any).finpsych_score ?? finPsychCalc?.score ?? null;
+                    // FinPsych: use stored values if available (faster), fallback to calculation
+                    const storedFinPsych = (applicant as any).finpsych_score;
+                    const storedReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
 
-                    // Reliability: prefer backend field, fallback to derivation
-                    const backendReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
-                    const reliabilityInfo = backendReliability
-                      ? { level: backendReliability as DataReliabilityLevel, label: (backendReliability as string).replaceAll('_', '-') }
-                      : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
+                    let finPsychScore: number | null;
+                    let reliabilityInfo: { level: DataReliabilityLevel; label: string } | null;
+
+                    if (storedFinPsych !== null && storedFinPsych !== undefined && storedReliability) {
+                      // Use stored values (optimized path)
+                      finPsychScore = storedFinPsych;
+                      reliabilityInfo = {
+                        level: storedReliability as DataReliabilityLevel,
+                        label: (storedReliability as string).replaceAll('_', '-')
+                      };
+                    } else {
+                      // Calculate on-the-fly for legacy records (fallback path)
+                      const finPsychCalc = calculateFinPsychScore(
+                        cwiScore,
+                        nciScore,
+                        applicant.gaming_risk_level,
+                        consistencyScore
+                      );
+                      finPsychScore = finPsychCalc?.score ?? null;
+                      reliabilityInfo = finPsychCalc
+                        ? { level: finPsychCalc.reliability, label: finPsychCalc.reliability.replaceAll('_', '-') }
+                        : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
+                    }
 
                     return (
                       <tr
@@ -1326,18 +1339,33 @@ export default function DashboardPage() {
                     ?? applicant.quality_score
                     ?? null;
 
-                  const finPsychCalc = calculateFinPsychScore(
-                    cwiScore,
-                    nciScore,
-                    applicant.gaming_risk_level,
-                    consistencyScore
-                  );
-                  const finPsychScore = (applicant as any).finpsych_score ?? finPsychCalc?.score ?? null;
+                  // FinPsych: use stored values if available (faster), fallback to calculation
+                  const storedFinPsych = (applicant as any).finpsych_score;
+                  const storedReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
 
-                  const backendReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
-                  const reliabilityInfo = backendReliability
-                    ? { level: backendReliability as DataReliabilityLevel, label: (backendReliability as string).replaceAll('_', '-') }
-                    : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
+                  let finPsychScore: number | null;
+                  let reliabilityInfo: { level: DataReliabilityLevel; label: string } | null;
+
+                  if (storedFinPsych !== null && storedFinPsych !== undefined && storedReliability) {
+                    // Use stored values (optimized path)
+                    finPsychScore = storedFinPsych;
+                    reliabilityInfo = {
+                      level: storedReliability as DataReliabilityLevel,
+                      label: (storedReliability as string).replaceAll('_', '-')
+                    };
+                  } else {
+                    // Calculate on-the-fly for legacy records (fallback path)
+                    const finPsychCalc = calculateFinPsychScore(
+                      cwiScore,
+                      nciScore,
+                      applicant.gaming_risk_level,
+                      consistencyScore
+                    );
+                    finPsychScore = finPsychCalc?.score ?? null;
+                    reliabilityInfo = finPsychCalc
+                      ? { level: finPsychCalc.reliability, label: finPsychCalc.reliability.replaceAll('_', '-') }
+                      : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
+                  }
 
                   return (
                     <div

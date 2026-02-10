@@ -8,7 +8,7 @@ import {
   type CreditCategory,
   categoryColors,
 } from '../data/questions';
-import { calculateCWI, type RawResponses } from '@fintech/scoring';
+import { calculateCWI, calculateNCI, type RawResponses } from '@fintech/scoring';
 import {
   validateResponses,
   deriveGamingRiskLevel,
@@ -593,6 +593,11 @@ export default function QuestionnairePage() {
     setError(null);
 
     try {
+      // Run CWI scoring engine first to get construct scores
+      const country = formData['dem4'] || 'Other';
+      const scoringResult = calculateCWI(formData as RawResponses, country);
+      console.log('✅ CWI scoring completed');
+
       // Calculate ASFN scores
       console.log('📊 Calculating ASFN scores...');
       const asfnLevel1Questions = allQuestions.filter(q => q.id.startsWith('asfn1_'));
@@ -618,15 +623,16 @@ export default function QuestionnairePage() {
       ? (asfnLevel2Correct / asfnLevel2Questions.length) * 100
       : null;
 
-    // Overall score: 60% Level 1, 40% Level 2 (if attempted)
-    const asfnOverallScore = asfnLevel2Attempted
-      ? (asfnLevel1Accuracy * 0.6) + (asfnLevel2Accuracy! * 0.4)
-      : asfnLevel1Accuracy;
+    // Overall score: (Total Correct / Total Attempted) × 100
+    // Attempted = 5 if L2 not unlocked, 10 if both levels attempted
+    const totalCorrect = asfnLevel1Correct + (asfnLevel2Attempted ? asfnLevel2Correct : 0);
+    const totalAttempted = asfnLevel2Attempted ? 10 : 5;
+    const asfnOverallScore = (totalCorrect / totalAttempted) * 100;
 
-    // Determine tier
+    // Determine tier: HIGH ≥80%, MEDIUM ≥60%, LOW <60%
     let asfnTier: 'LOW' | 'MEDIUM' | 'HIGH';
-    if (asfnOverallScore >= 75) asfnTier = 'HIGH';
-    else if (asfnOverallScore >= 50) asfnTier = 'MEDIUM';
+    if (asfnOverallScore >= 80) asfnTier = 'HIGH';
+    else if (asfnOverallScore >= 60) asfnTier = 'MEDIUM';
     else asfnTier = 'LOW';
 
     const asfnMetadata = {
@@ -682,10 +688,9 @@ export default function QuestionnairePage() {
       percent: lcaPercent,
     };
 
-    // Calculate Neurocognitive Index (NCI)
-    // NCI = 50% ASFN + 50% LCA (as per specification)
-    const nciScore = (asfnOverallScore * 0.5) + (lcaPercent * 0.5);
-    console.log(`NCI: (${asfnOverallScore.toFixed(1)} × 0.5) + (${lcaPercent.toFixed(1)} × 0.5) = ${nciScore.toFixed(1)}`);
+    // Calculate Neurocognitive Index (NCI) using centralized function
+    const nciScore = calculateNCI(scoringResult.constructScores);
+    console.log(`NCI: ${nciScore?.toFixed(1) ?? 'N/A'} (from construct scores)`);
 
     // Finalize session metadata
     const finalSessionMetadata: SessionMetadata = {
@@ -694,7 +699,7 @@ export default function QuestionnairePage() {
       totalTimeMs: Date.now() - sessionMetadata.startTime,
       asfn: asfnMetadata,
       lca: lcaMetadata,
-      nci: nciScore,
+      nci: nciScore ?? undefined,
     };
 
     // Prepare submission payload
@@ -788,11 +793,7 @@ export default function QuestionnairePage() {
           if (responsesError) throw responsesError;
         }
 
-        // Run CWI scoring engine
-        const country = formData['dem4'] || 'Other';
-        const scoringResult = calculateCWI(formData as RawResponses, country);
-
-        // Insert score record
+        // Insert score record (scoringResult already calculated at start of handleSubmit)
         const { error: scoreError } = await supabase
           .from('scores')
           .insert({

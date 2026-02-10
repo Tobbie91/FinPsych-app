@@ -21,10 +21,10 @@ import {
   FIVE_C_WEIGHTS,
   RISK_BANDS,
   LIKERT_MAP,
+  LIKELIHOOD_MAP,
   QUESTION_CONSTRUCT_MAP,
   REVERSE_SCORED_QUESTIONS,
   LOCUS_INTERNAL_ANSWERS,
-  EMERGENCY_SOURCE_SCORES,
   EMERGENCY_MONTHS_SCORES,
   SOCIAL_SUPPORT_SCORES,
   MODEL_VERSION,
@@ -43,11 +43,11 @@ export interface ConstructScores {
 }
 
 export interface FiveCScores {
-  character: number;
-  capacity: number;
-  capital: number;
-  collateral: number;
-  conditions: number;
+  character: number | null;
+  capacity: number | null;
+  capital: number | null;
+  collateral: number | null;
+  conditions: number | null;
 }
 
 export interface ScoringResult {
@@ -58,14 +58,14 @@ export interface ScoringResult {
   // 5Cs
   fiveCScores: FiveCScores;
 
-  // Final CWI
-  cwiRaw: number;
-  cwiNormalized: number;
-  cwi0100: number;
+  // Final CWI (null if insufficient data)
+  cwiRaw: number | null;
+  cwiNormalized: number | null;
+  cwi0100: number | null;
 
   // Risk assessment
   riskBand: string;
-  riskPercentile: number;
+  riskPercentile: number | null;
 
   // Metadata
   modelVersion: string;
@@ -97,23 +97,41 @@ function scoreLocusQuestion(value: string): number {
 }
 
 /**
- * Score an emergency preparedness question
+ * Score an emergency preparedness question (Q14a, Q14b, Q14c, Q15)
  */
-function scoreEmergencyQuestion(questionId: string, value: string): number {
-  if (questionId === 'q14') {
-    return EMERGENCY_SOURCE_SCORES[value] ?? 2;
-  }
+function scoreEmergencyQuestion(questionId: string, value: string, isReverse: boolean): number {
+  // Q15: Ordinal scale 0-4 → 1-5 (scaled = value + 1)
   if (questionId === 'q15') {
     return EMERGENCY_MONTHS_SCORES[value] ?? 3;
+  }
+  // Q14a, Q14b, Q14c: Likelihood scale
+  if (questionId.startsWith('q14')) {
+    const score = LIKELIHOOD_MAP[value] ?? 3;
+    return isReverse ? 6 - score : score;
   }
   return 3;
 }
 
 /**
- * Score a social support question
+ * Score a social collateral question (Q59, Q16b, Q16e)
+ * Q59 uses ordinal scale (0-4 → 1-5), Q16b/Q16e use likelihood scale
  */
-function scoreSocialSupportQuestion(value: string): number {
-  return SOCIAL_SUPPORT_SCORES[value] ?? 3;
+function scoreSocialCollateralQuestion(questionId: string, value: string): number {
+  // Q59: Social network size - ordinal scale
+  if (questionId === 'q59') {
+    return SOCIAL_SUPPORT_SCORES[value] ?? 3;
+  }
+  // Q16b, Q16e: Likelihood scale
+  return LIKELIHOOD_MAP[value] ?? 3;
+}
+
+/**
+ * Score a financial integrity question (Q16a, Q16c, Q16d, Q16f)
+ * Uses likelihood scale
+ */
+function scoreFinancialIntegrityQuestion(value: string, isReverse: boolean): number {
+  const score = LIKELIHOOD_MAP[value] ?? 3;
+  return isReverse ? 6 - score : score;
 }
 
 /**
@@ -214,7 +232,7 @@ function scoreLoanConsequenceAwareness(questionId: string, value: string): numbe
   const scoringMap: Record<string, Record<string, number>> = {
     'lca1': { 'A)': 3, 'B)': 0, 'C)': 1, 'D)': 1 },
     'lca2': { 'A)': 1, 'B)': 3, 'C)': 2, 'D)': 2 },
-    'lca3': { 'A)': 1, 'B)': 3, 'C)': 0, 'D)': 0 },
+    'lca3': { 'A)': 2, 'B)': 3, 'C)': 0, 'D)': 0 },
     'lca4': { 'A)': 0, 'B)': 3, 'C)': 1, 'D)': 0 },
     'lca5': { 'A)': 0, 'B)': 2, 'C)': 3, 'D)': 1 },
   };
@@ -245,11 +263,15 @@ function scoreQuestion(questionId: string, value: string): number {
   }
 
   if (construct === 'emergency_preparedness') {
-    return scoreEmergencyQuestion(questionId, value);
+    return scoreEmergencyQuestion(questionId, value, isReverse);
   }
 
-  if (construct === 'social_support' && questionId === 'q59') {
-    return scoreSocialSupportQuestion(value);
+  if (construct === 'social_collateral') {
+    return scoreSocialCollateralQuestion(questionId, value);
+  }
+
+  if (construct === 'financial_integrity') {
+    return scoreFinancialIntegrityQuestion(value, isReverse);
   }
 
   if (questionId === 'q16') {
@@ -321,6 +343,12 @@ function aggregateConstructs(responses: RawResponses): ConstructScores {
     constructCounts[construct]++;
   }
 
+  // LCA guard: max raw score is 15 (5 questions × 3 points max)
+  const lcaRaw = constructSums['loan_consequence_awareness'];
+  if (lcaRaw !== undefined && lcaRaw > 15) {
+    throw new Error(`LCA raw score ${lcaRaw} exceeds maximum of 15`);
+  }
+
   // Calculate means
   const constructScores: ConstructScores = {};
   for (const construct of Object.keys(constructSums)) {
@@ -328,6 +356,51 @@ function aggregateConstructs(responses: RawResponses): ConstructScores {
   }
 
   return constructScores;
+}
+
+// -----------------------------------------------------------------------------
+// NCI CALCULATION
+// -----------------------------------------------------------------------------
+
+/**
+ * Calculate NCI (Neurocognitive Index) from construct scores
+ * NCI = 50% ASFN + 50% LCA
+ *
+ * ASFN = average of cognitive_reflection, delay_discounting, financial_numeracy (scaled 0-100)
+ * LCA = loan_consequence_awareness (normalized to 0-100)
+ *
+ * For legacy records without q62/q63, ASFN is calculated from financial_numeracy only.
+ *
+ * @param constructScores - Raw construct scores from aggregateConstructs()
+ * @returns NCI score (0-100), or null if minimum required constructs missing
+ */
+export function calculateNCI(constructScores: ConstructScores): number | null {
+  const cogReflection = constructScores['cognitive_reflection'];
+  const delayDisc = constructScores['delay_discounting'];
+  const finNum = constructScores['financial_numeracy'];
+  const lca = constructScores['loan_consequence_awareness'];
+
+  // Minimum required: financial_numeracy AND loan_consequence_awareness
+  if (finNum === undefined || lca === undefined) {
+    return null;
+  }
+
+  // ASFN: Calculate based on available constructs
+  let asfnPercent: number;
+  if (cogReflection !== undefined && delayDisc !== undefined) {
+    // Full NCI: all 3 neurocognitive constructs (new questionnaires)
+    asfnPercent = ((cogReflection + delayDisc + finNum) / 3) * 100;
+  } else {
+    // Legacy NCI: only financial_numeracy available (old questionnaires)
+    // Use financial_numeracy directly as ASFN proxy
+    asfnPercent = finNum * 100;
+  }
+
+  // LCA: normalize from 0-3 scale to 0-100
+  const lcaPercent = (lca / 3) * 100;
+
+  // NCI = 50% ASFN + 50% LCA
+  return Math.round((asfnPercent * 0.5 + lcaPercent * 0.5) * 10) / 10;
 }
 
 // -----------------------------------------------------------------------------
@@ -393,14 +466,16 @@ function normalizeToHundred(rawScore: number): number {
 /**
  * Aggregate constructs into 5Cs scores (0-100 scale)
  * Uses raw construct scores, NOT z-scores
+ * Uses EQUAL weighting within each C category
+ * Returns null for empty categories (not 2.5/50) to avoid distorting CWI
  */
 function aggregate5Cs(constructScores: ConstructScores): FiveCScores {
   const fiveCScores: FiveCScores = {
-    character: 0,
-    capacity: 0,
-    capital: 0,
-    collateral: 0,
-    conditions: 0,
+    character: null,
+    capacity: null,
+    capital: null,
+    collateral: null,
+    conditions: null,
   };
 
   for (const [cCategory, constructs] of Object.entries(FIVE_C_MAP)) {
@@ -410,15 +485,19 @@ function aggregate5Cs(constructScores: ConstructScores): FiveCScores {
     for (const construct of constructs) {
       const rawScore = constructScores[construct];
       if (rawScore !== undefined) {
-        // Weight by PCA weight if available
-        const weight = PCA_WEIGHTS[construct] ?? 1;
-        sum += rawScore * weight;
-        count += weight;
+        // Equal weighting - all constructs weighted equally within their C
+        sum += rawScore;
+        count++;
       }
     }
 
-    // Calculate weighted average, then normalize to 0-100
-    const avgRawScore = count > 0 ? sum / count : 3; // Default to middle (3) if no data
+    // Return null for empty categories - do NOT default to neutral
+    if (count === 0) {
+      continue; // fiveCScores[cCategory] is already null
+    }
+
+    // Calculate simple mean, then normalize to 0-100
+    const avgRawScore = sum / count;
     fiveCScores[cCategory as keyof FiveCScores] = normalizeToHundred(avgRawScore);
   }
 
@@ -431,16 +510,22 @@ function aggregate5Cs(constructScores: ConstructScores): FiveCScores {
 
 /**
  * Calculate raw CWI from 5Cs scores
+ * Renormalizes by total weight of present categories (skips null)
  */
-function calculateCWIRaw(fiveCScores: FiveCScores): number {
-  let cwi = 0;
+function calculateCWIRaw(fiveCScores: FiveCScores): number | null {
+  let weightedSum = 0;
+  let weightSum = 0;
 
   for (const [category, weight] of Object.entries(FIVE_C_WEIGHTS)) {
     const score = fiveCScores[category as keyof FiveCScores];
-    cwi += score * weight;
+    if (typeof score === 'number' && !Number.isNaN(score)) {
+      weightedSum += score * weight;
+      weightSum += weight;
+    }
   }
 
-  return cwi;
+  if (weightSum === 0) return null;
+  return weightedSum / weightSum; // stays 0-100
 }
 
 // -----------------------------------------------------------------------------
@@ -517,21 +602,27 @@ export function calculateCWI(responses: RawResponses, country: string): ScoringR
   const constructZScores = standardizeConstructs(constructScores);
 
   // Step 4: Apply PCA weights (used within 5Cs calculation)
-  // Note: PCA weights are applied during 5Cs aggregation
+  // Note: Equal weighting is now used during 5Cs aggregation
 
   // Step 5: Aggregate into 5Cs (using raw scores, normalized to 0-100)
   const fiveCScores = aggregate5Cs(constructScores);
 
-  // Step 6: Calculate raw CWI
+  // Step 6: Calculate raw CWI (may be null if insufficient data)
   const cwiRaw = calculateCWIRaw(fiveCScores);
 
-  // Step 7: Country normalization
-  const cwiNormalized = normalizeByCountry(cwiRaw, country);
-  const cwi0100 = convertTo0100(cwiNormalized);
+  // Step 7-8: Country normalization and risk assignment (only if CWI exists)
+  let cwiNormalized: number | null = null;
+  let cwi0100: number | null = null;
+  let riskPercentile: number | null = null;
+  let riskBand = 'UNKNOWN';
 
-  // Step 8: Risk band assignment
-  const riskPercentile = zScoreToPercentile(cwiNormalized);
-  const riskBand = assignRiskBand(riskPercentile);
+  if (cwiRaw !== null) {
+    cwiNormalized = normalizeByCountry(cwiRaw, country);
+    cwi0100 = convertTo0100(cwiNormalized);
+    riskPercentile = zScoreToPercentile(cwiNormalized);
+    riskBand = assignRiskBand(riskPercentile);
+    riskPercentile = Math.round(riskPercentile * 100) / 100;
+  }
 
   return {
     constructScores,
@@ -541,7 +632,7 @@ export function calculateCWI(responses: RawResponses, country: string): ScoringR
     cwiNormalized,
     cwi0100,
     riskBand,
-    riskPercentile: Math.round(riskPercentile * 100) / 100,
+    riskPercentile,
     modelVersion: MODEL_VERSION,
     scoredAt: new Date().toISOString(),
     country,
