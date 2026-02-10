@@ -4,12 +4,11 @@ export type CreditCategory = 'Character' | 'Capacity' | 'Capital' | 'Conditions'
 // Construct types for CWI scoring
 export type Construct =
   | 'payment_history'
-  | 'financial_behaviour'
-  | 'financial_management'
-  | 'financial_resources'
+  | 'financial_management'      // Renamed from financial_behaviour
+  | 'crisis_management'         // Q6, Q50
+  | 'financial_integrity'       // Q16a, Q16c, Q16d, Q16f (NEW)
   | 'emergency_preparedness'
-  | 'crisis_decision_making'
-  | 'crisis_management'
+  | 'social_collateral'         // Renamed from social_support
   | 'conscientiousness'
   | 'emotional_stability'
   | 'agreeableness'
@@ -18,8 +17,7 @@ export type Construct =
   | 'risk_preference'
   | 'self_control'
   | 'locus_of_control'
-  | 'social_support'
-  | 'time_orientation'
+  | 'future_orientation'        // Renamed from time_orientation
   | 'cognitive_reflection'
   | 'delay_discounting'
   | 'financial_numeracy'
@@ -448,18 +446,18 @@ export const sections: Section[] = [
         reverseScored: false,
         fiveC: 'Character',
       },
-      // Financial Integrity (4 questions: Q16a, Q16c, Q16d, Q16f)
+      // Financial Integrity (4 questions: Q16a, Q16c, Q16d, Q16f) → CAPACITY
       {
         id: 'q16a',
         number: 30,
         text: 'In a financial crisis, how likely are you to CONTACT YOUR LENDER to discuss options?',
         type: 'select',
         options: likelihoodScale,
-        category: 'Character',
+        category: 'Capacity',
         categoryDescription: 'Financial Integrity',
-        construct: 'financial_behaviour',
+        construct: 'financial_integrity',
         reverseScored: false,
-        fiveC: 'Character',
+        fiveC: 'Capacity',
       },
       {
         id: 'q16c',
@@ -467,11 +465,11 @@ export const sections: Section[] = [
         text: 'In a financial crisis, how likely are you to SKIP PAYMENTS temporarily?',
         type: 'select',
         options: likelihoodScale,
-        category: 'Character',
+        category: 'Capacity',
         categoryDescription: 'Financial Integrity',
-        construct: 'financial_behaviour',
+        construct: 'financial_integrity',
         reverseScored: true,
-        fiveC: 'Character',
+        fiveC: 'Capacity',
       },
       {
         id: 'q16d',
@@ -479,11 +477,11 @@ export const sections: Section[] = [
         text: 'In a financial crisis, how likely are you to PRIORITISE OTHER EXPENSES over loan payments?',
         type: 'select',
         options: likelihoodScale,
-        category: 'Character',
+        category: 'Capacity',
         categoryDescription: 'Financial Integrity',
-        construct: 'financial_behaviour',
+        construct: 'financial_integrity',
         reverseScored: true,
-        fiveC: 'Character',
+        fiveC: 'Capacity',
       },
       {
         id: 'q16f',
@@ -491,11 +489,11 @@ export const sections: Section[] = [
         text: 'In a financial crisis, how likely are you to WORK EXTRA HOURS to earn more money?',
         type: 'select',
         options: likelihoodScale,
-        category: 'Character',
+        category: 'Capacity',
         categoryDescription: 'Financial Integrity',
-        construct: 'financial_behaviour',
+        construct: 'financial_integrity',
         reverseScored: false,
-        fiveC: 'Character',
+        fiveC: 'Capacity',
       },
     ],
   },
@@ -661,7 +659,7 @@ export const sections: Section[] = [
         category: 'Capacity',
         categoryDescription: 'Crisis Management',
         construct: 'crisis_management',
-        reverseScored: false,
+        reverseScored: true,  // Renegotiating is a negative signal
         fiveC: 'Capacity',
       },
       {
@@ -672,22 +670,22 @@ export const sections: Section[] = [
         options: frequencyScale,
         category: 'Capacity',
         categoryDescription: 'Crisis Management',
-        construct: 'self_control',
+        construct: 'crisis_management',
         reverseScored: false,
         fiveC: 'Capacity',
       },
-      // Emotional Stability (5 questions: Q22-Q26) - All Reversed
+      // Emotional Stability (5 questions: Q22-Q26) - All Reversed → CHARACTER
       {
         id: 'q22',
         number: 48,
         text: 'I often feel stressed.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Emotional Stability',
         construct: 'emotional_stability',
         reverseScored: true,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q23',
@@ -695,11 +693,11 @@ export const sections: Section[] = [
         text: 'I worry about many things.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Emotional Stability',
         construct: 'emotional_stability',
         reverseScored: true,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q24',
@@ -707,11 +705,11 @@ export const sections: Section[] = [
         text: 'I get upset easily.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Emotional Stability',
         construct: 'emotional_stability',
         reverseScored: true,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q25',
@@ -719,11 +717,11 @@ export const sections: Section[] = [
         text: 'I feel anxious frequently.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Emotional Stability',
         construct: 'emotional_stability',
         reverseScored: true,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q26',
@@ -731,24 +729,24 @@ export const sections: Section[] = [
         text: 'I have frequent mood swings.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Emotional Stability',
         construct: 'emotional_stability',
         reverseScored: true,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
-      // Openness to Experience (5 questions: Q32-Q36)
+      // Openness to Experience (5 questions: Q32-Q36) → CHARACTER (per spec: CHARACTER has 6 constructs)
       {
         id: 'q32',
         number: 53,
         text: 'I have a vivid imagination.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q33',
@@ -756,11 +754,11 @@ export const sections: Section[] = [
         text: 'I enjoy reflecting on ideas.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q34',
@@ -768,11 +766,11 @@ export const sections: Section[] = [
         text: 'I value artistic experiences.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q35',
@@ -780,11 +778,11 @@ export const sections: Section[] = [
         text: 'I am curious about new things.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q36',
@@ -792,24 +790,24 @@ export const sections: Section[] = [
         text: 'I enjoy exploring new concepts.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
-      // Extraversion (5 questions: Q37-Q41)
+      // Extraversion (5 questions: Q37-Q41) → CHARACTER
       {
         id: 'q37',
         number: 58,
         text: 'I am the life of the party.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Extraversion',
         construct: 'extraversion',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q38',
@@ -817,11 +815,11 @@ export const sections: Section[] = [
         text: 'I feel comfortable around people.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Extraversion',
         construct: 'extraversion',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q39',
@@ -829,11 +827,11 @@ export const sections: Section[] = [
         text: 'I start conversations easily.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Extraversion',
         construct: 'extraversion',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q40',
@@ -841,11 +839,11 @@ export const sections: Section[] = [
         text: 'I talk to many people at social gatherings.',
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Extraversion',
         construct: 'extraversion',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
       {
         id: 'q41',
@@ -853,11 +851,11 @@ export const sections: Section[] = [
         text: "I don't mind being the centre of attention.",
         type: 'scale',
         options: frequencyScale,
-        category: 'Capacity',
+        category: 'Character',
         categoryDescription: 'Extraversion',
         construct: 'extraversion',
         reverseScored: false,
-        fiveC: 'Capacity',
+        fiveC: 'Character',
       },
     ],
   },
@@ -886,8 +884,8 @@ export const sections: Section[] = [
         type: 'select',
         options: likelihoodScale,
         category: 'Capital',
-        categoryDescription: 'Financial Resources',
-        construct: 'financial_resources',
+        categoryDescription: 'Emergency Preparedness',
+        construct: 'emergency_preparedness',
         reverseScored: false,
         fiveC: 'Capital',
       },
@@ -898,8 +896,8 @@ export const sections: Section[] = [
         type: 'select',
         options: likelihoodScale,
         category: 'Capital',
-        categoryDescription: 'Financial Resources',
-        construct: 'financial_resources',
+        categoryDescription: 'Emergency Preparedness',
+        construct: 'emergency_preparedness',
         reverseScored: false,
         fiveC: 'Capital',
       },
@@ -910,9 +908,9 @@ export const sections: Section[] = [
         type: 'select',
         options: likelihoodScale,
         category: 'Capital',
-        categoryDescription: 'Financial Resources',
-        construct: 'financial_resources',
-        reverseScored: false,
+        categoryDescription: 'Emergency Preparedness',
+        construct: 'emergency_preparedness',
+        reverseScored: true,  // Taking a loan is worse
         fiveC: 'Capital',
       },
     ],
@@ -930,8 +928,8 @@ export const sections: Section[] = [
         type: 'select',
         options: ['None', '1–2 people', '3–5 people', '6–10 people', 'More than 10'],
         category: 'Collateral',
-        categoryDescription: 'Social Support Network',
-        construct: 'social_support',
+        categoryDescription: 'Social Collateral',
+        construct: 'social_collateral',
         reverseScored: false,
         fiveC: 'Collateral',
       },
@@ -942,8 +940,8 @@ export const sections: Section[] = [
         type: 'select',
         options: likelihoodScale,
         category: 'Collateral',
-        categoryDescription: 'Social Support Network',
-        construct: 'financial_behaviour',
+        categoryDescription: 'Social Collateral',
+        construct: 'social_collateral',
         reverseScored: false,
         fiveC: 'Collateral',
       },
@@ -954,8 +952,8 @@ export const sections: Section[] = [
         type: 'select',
         options: likelihoodScale,
         category: 'Collateral',
-        categoryDescription: 'Alternative Resources',
-        construct: 'financial_behaviour',
+        categoryDescription: 'Social Collateral',
+        construct: 'social_collateral',
         reverseScored: false,
         fiveC: 'Collateral',
       },
@@ -976,7 +974,7 @@ export const sections: Section[] = [
         options: ['Never', 'Rarely', 'Sometimes', 'Often', 'Very often'],
         category: 'Conditions',
         categoryDescription: 'Future Orientation & Planning',
-        construct: 'time_orientation',
+        construct: 'future_orientation',
         reverseScored: false,
         fiveC: 'Conditions',
       },
@@ -988,7 +986,7 @@ export const sections: Section[] = [
         options: frequencyScale,
         category: 'Conditions',
         categoryDescription: 'Future Orientation & Planning',
-        construct: 'time_orientation',
+        construct: 'future_orientation',
         reverseScored: false,
         fiveC: 'Conditions',
       },
@@ -1256,7 +1254,7 @@ export const sections: Section[] = [
           'C) Try to borrow from family/friends to pay this loan.',
           'D) Focus on earning extra money and pay when you can.',
         ],
-        lcaPoints: { A: 3, B: 0, C: 1, D: 2 }, // Best: proactive communication
+        lcaPoints: { A: 3, B: 0, C: 1, D: 1 }, // Best: proactive communication (A)
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Consequence Prioritization Under Stress',
@@ -1272,7 +1270,7 @@ export const sections: Section[] = [
           "C) He still owes money because the phone didn't fully cover the debt.",
           "D) People will know he couldn't pay his loan.",
         ],
-        lcaPoints: { A: 0, B: 2, C: 3, D: 1 }, // Best: understands debt still exists
+        lcaPoints: { A: 1, B: 3, C: 2, D: 2 }, // Best: understands income impact (B)
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Cascading Consequences',
@@ -1288,7 +1286,7 @@ export const sections: Section[] = [
           'C) Oma - wants to expand her business; expects to earn $500 more per month.',
           'D) David - needs to repair his taxi; without it, cannot earn any income.',
         ],
-        lcaPoints: { A: 3, B: 1, C: 2, D: 0 }, // Best: identifies irregular income + necessity as highest risk
+        lcaPoints: { A: 2, B: 3, C: 0, D: 0 }, // Best: identifies want with steady income as highest risk (B)
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Necessity vs Want Judgment',
@@ -1304,7 +1302,7 @@ export const sections: Section[] = [
           'C) Still paying higher interest on the old loan.',
           'D) The lender occasionally checks on you.',
         ],
-        lcaPoints: { A: 0, B: 3, C: 1, D: 2 }, // Best: recognizes long-term credit impact
+        lcaPoints: { A: 0, B: 3, C: 1, D: 0 }, // Best: recognizes long-term credit impact (B)
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Long-Term Consequence Recognition',
@@ -1320,7 +1318,7 @@ export const sections: Section[] = [
           'C) $121 (interest compounds - grows on top of previous interest)',
           'D) $130 (penalty fees added)',
         ],
-        lcaPoints: { A: 0, B: 1, C: 3, D: 2 }, // Best: understands compound interest
+        lcaPoints: { A: 0, B: 2, C: 3, D: 1 }, // Best: understands compound interest (C)
         construct: 'loan_consequence_awareness',
         fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Understanding Debt Accumulation',
