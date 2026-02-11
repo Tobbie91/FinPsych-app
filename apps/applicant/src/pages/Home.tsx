@@ -45,16 +45,37 @@ export default function Home() {
         {/* Welcome Section */}
         <div className="mb-16 text-center max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-            Welcome to Your Assessment
+            Welcome to Your Assessment.
           </h2>
           <p className="text-gray-600 dark:text-gray-300 text-lg mb-4 leading-relaxed">
             To help us understand your financial habits, decision-making style, and overall reliability,
-            we've prepared a comprehensive questionnaire known as the Creditworthiness Index (CWI) assessment.
+            we have prepared a comprehensive questionnaire to calculate your Financial Psychology Score (FinPsych Score).
           </p>
+          <p className="text-gray-600 dark:text-gray-300 text-lg mb-8 leading-relaxed">
+            Your responses will allow us to understand your financial capabilities and create a personalised creditworthiness evaluation.
+          </p>
+
+          {/* Three Parts */}
+          <div className="text-left bg-gray-50 dark:bg-gray-800 rounded-xl p-6 mb-8">
+            <p className="text-gray-900 dark:text-white font-semibold mb-3">This assessment has three parts:</p>
+            <ul className="space-y-2 text-gray-600 dark:text-gray-300">
+              <li className="flex items-start gap-2">
+                <span className="text-teal-600 dark:text-teal-400 mt-1">•</span>
+                <span><span className="font-medium text-gray-800 dark:text-gray-200">Financial Behaviours</span> — Your habits, personality, and attitudes toward money.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-teal-600 dark:text-teal-400 mt-1">•</span>
+                <span><span className="font-medium text-gray-800 dark:text-gray-200">Financial Numeracy</span> — Your ability to understand financial scenarios and calculations.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-teal-600 dark:text-teal-400 mt-1">•</span>
+                <span><span className="font-medium text-gray-800 dark:text-gray-200">Response Validation</span> — Quick checks to ensure accurate scoring.</span>
+              </li>
+            </ul>
+          </div>
+
           <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
-            Your responses will allow us to create a more accurate and fair evaluation tailored to you.
-            There are no right or wrong answers—simply choose the options that best reflect your real
-            behaviour and personal experiences.
+            Please answer honestly. Our system detects inconsistencies and adjusts your score accordingly.
           </p>
         </div>
 
@@ -66,11 +87,10 @@ export default function Home() {
               <ClipboardList className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-              Assessment Scope
+              What We Assess
             </h3>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              The questionnaire contains multiple sections covering your financial behaviour,
-              personality traits, risk preference, and more.
+              Financial discipline, payment reliability, emergency preparedness, risk understanding, decision-making ability, and more.
             </p>
           </div>
 
@@ -80,10 +100,10 @@ export default function Home() {
               <Clock className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-              Estimated Time
+              Time Required
             </h3>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              The questionnaire typically takes <span className="text-teal-600 dark:text-teal-400 font-semibold">8-12 minutes</span> to complete.
+              Approximately <span className="text-teal-600 dark:text-teal-400 font-semibold">8-12 minutes</span> (varies by individual).
             </p>
           </div>
 
@@ -93,10 +113,10 @@ export default function Home() {
               <Shield className="w-6 h-6 text-teal-600 dark:text-teal-400" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
-              Confidentiality
+              Your Privacy
             </h3>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-              Your information is kept confidential and securely protected under strict data privacy standards.
+              All responses are confidential and protected under strict data privacy standards. Your data will only be used for creditworthiness assessment.
             </p>
           </div>
         </div>
