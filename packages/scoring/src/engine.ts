@@ -443,20 +443,26 @@ export function applyPCAWeights(constructZScores: ConstructScores): number {
 // STEP 5: 5Cs AGGREGATION
 // -----------------------------------------------------------------------------
 
+// Constructs scored on 0-1 binary scale (not 1-5 Likert)
+const BINARY_CONSTRUCTS = new Set(['locus_of_control']);
+
 /**
- * Normalize a raw score (1-5 scale) to 0-100 scale
- * Formula: ((rawScore - 1) / (5 - 1)) * 100, clamped to [0, 100]
+ * Normalize a single construct score to 0-100 based on its scale:
+ * - Likert (1-5): ((score - 1) / 4) × 100
+ * - Binary (0-1): score × 100
  */
-function normalizeToHundred(rawScore: number): number {
-  const normalized = ((rawScore - 1) / (5 - 1)) * 100;
-  return Math.max(0, Math.min(100, normalized));
+function normalizeConstructToHundred(construct: string, score: number): number {
+  if (BINARY_CONSTRUCTS.has(construct)) {
+    return Math.max(0, Math.min(100, score * 100));
+  }
+  return Math.max(0, Math.min(100, ((score - 1) / 4) * 100));
 }
 
 /**
  * Aggregate constructs into 5Cs scores (0-100 scale)
- * Uses raw construct scores, NOT z-scores
- * Uses EQUAL weighting within each C category
- * Returns null for empty categories (not 2.5/50) to avoid distorting CWI
+ * Each construct is normalized to 0-100 individually before averaging,
+ * so mixed scales (Likert 1-5 vs binary 0-1) are handled correctly.
+ * Returns null for empty categories to avoid distorting CWI.
  */
 function aggregate5Cs(constructScores: ConstructScores): FiveCScores {
   const fiveCScores: FiveCScores = {
@@ -474,20 +480,16 @@ function aggregate5Cs(constructScores: ConstructScores): FiveCScores {
     for (const construct of constructs) {
       const rawScore = constructScores[construct];
       if (rawScore !== undefined) {
-        // Equal weighting - all constructs weighted equally within their C
-        sum += rawScore;
+        // Normalize each construct to 0-100 before averaging
+        sum += normalizeConstructToHundred(construct, rawScore);
         count++;
       }
     }
 
-    // Return null for empty categories - do NOT default to neutral
-    if (count === 0) {
-      continue; // fiveCScores[cCategory] is already null
-    }
+    if (count === 0) continue;
 
-    // Calculate simple mean, then normalize to 0-100
-    const avgRawScore = sum / count;
-    fiveCScores[cCategory as keyof FiveCScores] = normalizeToHundred(avgRawScore);
+    // C score is already 0-100 (mean of normalized construct scores)
+    fiveCScores[cCategory as keyof FiveCScores] = Math.round((sum / count) * 10) / 10;
   }
 
   return fiveCScores;

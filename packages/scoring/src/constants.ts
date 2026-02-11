@@ -92,7 +92,6 @@ export const FIVE_C_MAP: Record<string, string[]> = {
     'conscientiousness',    // Q17-Q21
     'agreeableness',        // Q27-Q31
     'emotional_stability',  // Q22-Q26
-    'openness',             // Q32-Q36 (per spec: CHARACTER has 6 constructs)
     'extraversion',         // Q37-Q41
   ],
   capacity: [
@@ -108,9 +107,10 @@ export const FIVE_C_MAP: Record<string, string[]> = {
     'social_collateral',    // Q59, Q16b, Q16e
   ],
   conditions: [
-    'future_orientation',   // Q60-Q61 (per spec: CONDITIONS has 3 constructs)
+    'future_orientation',   // Q60-Q61
     'risk_preference',      // Q42-Q46
-    'locus_of_control',     // Q54-Q58
+    'locus_of_control',     // Q54-Q58 (binary 0-1 scale)
+    'openness',             // Q32-Q36 (moved from character)
   ],
 };
 
