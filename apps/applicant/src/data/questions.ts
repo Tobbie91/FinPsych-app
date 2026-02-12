@@ -746,7 +746,7 @@ export const sections: Section[] = [
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Character',
+        fiveC: 'Conditions',
       },
       {
         id: 'q33',
@@ -758,7 +758,7 @@ export const sections: Section[] = [
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Character',
+        fiveC: 'Conditions',
       },
       {
         id: 'q34',
@@ -770,7 +770,7 @@ export const sections: Section[] = [
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Character',
+        fiveC: 'Conditions',
       },
       {
         id: 'q35',
@@ -782,7 +782,7 @@ export const sections: Section[] = [
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Character',
+        fiveC: 'Conditions',
       },
       {
         id: 'q36',
@@ -794,7 +794,7 @@ export const sections: Section[] = [
         categoryDescription: 'Openness to Experience',
         construct: 'openness',
         reverseScored: false,
-        fiveC: 'Character',
+        fiveC: 'Conditions',
       },
       // Extraversion (5 questions: Q37-Q41) → CHARACTER
       {
@@ -1129,7 +1129,6 @@ export const sections: Section[] = [
         options: ['A) Three $10 bills', 'B) Two $20 bills'],
         correctAnswer: 'B) Two $20 bills',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 1,
         categoryDescription: 'ASFN Level 1: Functional Numeracy',
       },
@@ -1141,7 +1140,6 @@ export const sections: Section[] = [
         options: ['A) $5', 'B) $3', 'C) $7'],
         correctAnswer: 'A) $5',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 1,
         categoryDescription: 'ASFN Level 1: Functional Numeracy',
       },
@@ -1153,7 +1151,6 @@ export const sections: Section[] = [
         options: ['A) $15', 'B) $10', 'C) $25'],
         correctAnswer: 'A) $15',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 1,
         categoryDescription: 'ASFN Level 1: Functional Numeracy',
       },
@@ -1165,7 +1162,6 @@ export const sections: Section[] = [
         options: ['A) $9', 'B) $18', 'C) $12'],
         correctAnswer: 'C) $12',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 1,
         categoryDescription: 'ASFN Level 1: Functional Numeracy',
       },
@@ -1177,7 +1173,6 @@ export const sections: Section[] = [
         options: ['A) Shop B', 'B) Shop A', 'C) Same price'],
         correctAnswer: 'A) Shop B',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 1,
         categoryDescription: 'ASFN Level 1: Functional Numeracy',
       },
@@ -1190,7 +1185,6 @@ export const sections: Section[] = [
         options: ['A) Lender A', 'B) Lender B', 'C) Same interest cost'],
         correctAnswer: 'A) Lender A',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 2,
         categoryDescription: 'ASFN Level 2: Financial Comparison',
       },
@@ -1202,7 +1196,6 @@ export const sections: Section[] = [
         options: ['A) Option A', 'B) Option B', 'C) Same amount'],
         correctAnswer: 'A) Option A',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 2,
         categoryDescription: 'ASFN Level 2: Financial Comparison',
       },
@@ -1214,7 +1207,6 @@ export const sections: Section[] = [
         options: ['A) $400', 'B) $450', 'C) $500'],
         correctAnswer: 'B) $450',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 2,
         categoryDescription: 'ASFN Level 2: Financial Comparison',
       },
@@ -1226,7 +1218,6 @@ export const sections: Section[] = [
         options: ['A) Plan A', 'B) Plan B', 'C) Same amount'],
         correctAnswer: 'B) Plan B',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 2,
         categoryDescription: 'ASFN Level 2: Financial Comparison',
       },
@@ -1238,7 +1229,6 @@ export const sections: Section[] = [
         options: ['A) More groceries', 'B) Less groceries', 'C) Same amount'],
         correctAnswer: 'B) Less groceries',
         construct: 'financial_numeracy',
-        fiveC: 'Capital',
         level: 2,
         categoryDescription: 'ASFN Level 2: Financial Comparison',
       },
@@ -1256,7 +1246,6 @@ export const sections: Section[] = [
         ],
         lcaPoints: { A: 3, B: 0, C: 1, D: 1 }, // Best: proactive communication (A)
         construct: 'loan_consequence_awareness',
-        fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Consequence Prioritization Under Stress',
       },
       {
@@ -1272,7 +1261,6 @@ export const sections: Section[] = [
         ],
         lcaPoints: { A: 1, B: 3, C: 2, D: 2 }, // Best: understands income impact (B)
         construct: 'loan_consequence_awareness',
-        fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Cascading Consequences',
       },
       {
@@ -1288,7 +1276,6 @@ export const sections: Section[] = [
         ],
         lcaPoints: { A: 2, B: 3, C: 0, D: 0 }, // Best: identifies want with steady income as highest risk (B)
         construct: 'loan_consequence_awareness',
-        fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Necessity vs Want Judgment',
       },
       {
@@ -1304,7 +1291,6 @@ export const sections: Section[] = [
         ],
         lcaPoints: { A: 0, B: 3, C: 1, D: 0 }, // Best: recognizes long-term credit impact (B)
         construct: 'loan_consequence_awareness',
-        fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Long-Term Consequence Recognition',
       },
       {
@@ -1320,7 +1306,6 @@ export const sections: Section[] = [
         ],
         lcaPoints: { A: 0, B: 2, C: 3, D: 1 }, // Best: understands compound interest (C)
         construct: 'loan_consequence_awareness',
-        fiveC: 'Character',
         categoryDescription: 'Loan Consequence Awareness: Understanding Debt Accumulation',
       },
       // GAMING DETECTOR MODULE (9 questions - ALL REQUIRED, NOT SCORED)
@@ -1336,7 +1321,6 @@ export const sections: Section[] = [
           "D) Use it to buy something I've been wanting for a while.",
         ],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Unexpected Windfall',
       },
       {
@@ -1351,7 +1335,6 @@ export const sections: Section[] = [
           'D) Buy it and adjust another purchase to stay within budget.',
         ],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Sale Opportunity',
       },
       {
@@ -1366,7 +1349,6 @@ export const sections: Section[] = [
           "D) I don't really track them - I just try to be careful.",
         ],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Expense Tracking',
       },
       {
@@ -1376,7 +1358,6 @@ export const sections: Section[] = [
         type: 'select',
         options: ['A) Option A ($20 today)', 'B) Option B ($25 in 1 week)'],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Small Amount Choice',
       },
       {
@@ -1386,7 +1367,6 @@ export const sections: Section[] = [
         type: 'select',
         options: ['A) Option A ($50 today)', 'B) Option B ($70 in 1 month)'],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Medium Amount Choice',
       },
       {
@@ -1396,7 +1376,6 @@ export const sections: Section[] = [
         type: 'select',
         options: ['A) Option A ($100 today)', 'B) Option B ($150 in 6 months)'],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Large Amount Choice',
       },
       {
@@ -1411,7 +1390,6 @@ export const sections: Section[] = [
           'D) Focused on building emergency fund.',
         ],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Recent Savings Pattern',
       },
       {
@@ -1426,7 +1404,6 @@ export const sections: Section[] = [
           'D) Accept and spend it on something I want.',
         ],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Interest-Free Loan Offer',
       },
       {
@@ -1441,7 +1418,6 @@ export const sections: Section[] = [
           'D) Handle household needs first.',
         ],
         construct: 'gaming_detection',
-        fiveC: 'Character',
         categoryDescription: 'Gaming Detection: Competing Financial Obligations',
       },
     ],
