@@ -36,35 +36,62 @@ interface Section {
 
 // Convert questionnaire sections to survey format
 const convertToSurveyFormat = (): Section[] => {
-  return questionnaireSections.map((section) => {
-    // Map section IDs to categories
-    let category: CreditCategory;
-    if (section.id === 'section-a') category = 'Demographics';
-    else if (section.id === 'section-b') category = 'Character';
-    else if (section.id === 'section-c') category = 'Capacity';
-    else if (section.id === 'section-d') category = 'Capital';
-    else if (section.id === 'section-e') category = 'Collateral';
-    else if (section.id === 'section-f') category = 'Conditions';
-    else if (section.id === 'section-g') category = 'Capital';
-    else category = 'Character';
+  // Collect all questions from all sections
+  const allQuestions: Array<Question & { fiveC?: string; isDemographic?: boolean }> = [];
 
-    return {
-      id: section.id,
-      name: section.title,
-      category,
-      questions: section.questions.map((q) => ({
+  questionnaireSections.forEach((section) => {
+    section.questions.forEach((q: any) => {
+      allQuestions.push({
         id: q.id,
         number: q.number,
         text: q.text,
         type: q.type as Question['type'],
         options: q.options || [],
         required: true,
-        category,
+        category: q.fiveC || (q.isDemographic ? 'Demographics' : 'Character'),
         construct: q.construct,
         reverseScored: q.reverseScored,
-      })),
-    };
+        fiveC: q.fiveC,
+        isDemographic: q.isDemographic,
+      });
+    });
   });
+
+  // Group questions by their 5C category
+  const grouped: Record<string, Question[]> = {
+    Demographics: [],
+    Character: [],
+    Capacity: [],
+    Capital: [],
+    Collateral: [],
+    Conditions: [],
+  };
+
+  allQuestions.forEach((q) => {
+    if (q.isDemographic) {
+      grouped.Demographics.push(q);
+    } else if (q.fiveC) {
+      grouped[q.fiveC].push(q);
+    }
+    // Skip questions without fiveC (NCI questions)
+  });
+
+  // Create sections for each category
+  const categories: Array<{ id: string; name: string; category: CreditCategory }> = [
+    { id: 'demographics', name: 'Demographics', category: 'Demographics' },
+    { id: 'character', name: 'Character', category: 'Character' },
+    { id: 'capacity', name: 'Capacity', category: 'Capacity' },
+    { id: 'capital', name: 'Capital', category: 'Capital' },
+    { id: 'collateral', name: 'Collateral', category: 'Collateral' },
+    { id: 'conditions', name: 'Conditions', category: 'Conditions' },
+  ];
+
+  return categories.map(({ id, name, category }) => ({
+    id,
+    name,
+    category,
+    questions: grouped[category] || [],
+  }));
 };
 
 const initialSections: Section[] = convertToSurveyFormat();
@@ -74,7 +101,7 @@ const frequencyScale = ['Never', 'Rarely', 'Sometimes', 'Often', 'Always'];
 
 export default function SurveyPage() {
   const [sections, setSections] = useState<Section[]>(initialSections);
-  const [activeSection, setActiveSection] = useState('section-a');
+  const [activeSection, setActiveSection] = useState('demographics');
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   const currentSection = sections.find((s) => s.id === activeSection);
