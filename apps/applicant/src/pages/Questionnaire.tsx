@@ -93,7 +93,7 @@ function generateSessionId(): string {
 }
 
 // Category Badge Component for 5C questions
-function CategoryBadge({ category, description, isNeurocognitive }: { category: CreditCategory; description?: string; isNeurocognitive?: boolean }) {
+function CategoryBadge({ category, isNeurocognitive }: { category: CreditCategory; description?: string; isNeurocognitive?: boolean }) {
   const colors = categoryColors[category];
 
   // Neurocognitive questions - simple badge
