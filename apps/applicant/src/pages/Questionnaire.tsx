@@ -850,8 +850,30 @@ export default function QuestionnairePage() {
         // Clear local storage draft
         localStorage.removeItem(`finpsych_draft_${sessionMetadata.sessionId}`);
 
-        // Navigate to submitted page
-        navigate('/submitted');
+        // Send score email to applicant (non-blocking)
+        const applicantEmail = formData['demo2'];
+        const applicantName = formData['demo1'] || 'Applicant';
+        if (applicantEmail && finPsychResult?.score != null && supabase) {
+          supabase.functions.invoke('send-score-email', {
+            body: {
+              to: applicantEmail,
+              applicantName,
+              finpsychScore: finPsychResult.score,
+              riskBand: scoringResult.riskBand,
+            },
+          }).then(({ error }) => {
+            if (error) console.error('Email send failed:', error);
+            else console.log('Score email sent to', applicantEmail);
+          });
+        }
+
+        // Navigate to submitted page with score data
+        navigate('/submitted', {
+          state: {
+            finpsychScore: finPsychResult?.score ?? null,
+            riskBand: scoringResult.riskBand,
+          },
+        });
       } catch (err) {
         console.error('Submission error:', err);
         setError('Failed to submit assessment. Please try again.');
@@ -860,7 +882,7 @@ export default function QuestionnairePage() {
     } else {
       // No Supabase - just navigate (dev mode)
       console.log('No Supabase configured - skipping database insert');
-      navigate('/submitted');
+      navigate('/submitted', { state: { finpsychScore: null, riskBand: null } });
     }
     } catch (globalError) {
       console.error('❌ CRITICAL ERROR in handleSubmit:', globalError);

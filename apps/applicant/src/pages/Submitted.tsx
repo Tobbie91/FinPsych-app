@@ -1,6 +1,42 @@
 import { CheckCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+
+const RISK_BAND_CONFIG: Record<string, { label: string; color: string; bg: string; ring: string; description: string }> = {
+  LOW: {
+    label: 'Low Risk',
+    color: 'text-green-700',
+    bg: 'bg-green-100',
+    ring: 'ring-green-500',
+    description: 'Excellent financial profile',
+  },
+  MODERATE: {
+    label: 'Moderate Risk',
+    color: 'text-amber-700',
+    bg: 'bg-amber-100',
+    ring: 'ring-amber-500',
+    description: 'Good financial profile with some areas for improvement',
+  },
+  HIGH: {
+    label: 'High Risk',
+    color: 'text-orange-700',
+    bg: 'bg-orange-100',
+    ring: 'ring-orange-500',
+    description: 'Financial profile needs attention',
+  },
+  VERY_HIGH: {
+    label: 'Very High Risk',
+    color: 'text-red-700',
+    bg: 'bg-red-100',
+    ring: 'ring-red-500',
+    description: 'Significant financial concerns identified',
+  },
+};
 
 export default function SubmittedPage() {
+  const location = useLocation();
+  const { finpsychScore, riskBand } = (location.state as { finpsychScore?: number | null; riskBand?: string | null }) || {};
+
+  const riskConfig = riskBand ? RISK_BAND_CONFIG[riskBand] : null;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -29,9 +65,24 @@ export default function SubmittedPage() {
             </h1>
 
             {/* Message */}
-            <p className="text-gray-600 mb-8">
-              Thank you for completing the Credit Worthiness Assessment. Your responses have been recorded and will be reviewed by the institution.
+            <p className="text-gray-600 mb-6">
+              Thank you for completing the FinPsych Assessment. Your responses have been recorded and will be reviewed by the institution.
             </p>
+
+            {/* FinPsych Score Card */}
+            {finpsychScore != null && riskConfig && (
+              <div className={`rounded-xl p-6 mb-6 ring-2 ${riskConfig.ring} ${riskConfig.bg}`}>
+                <p className="text-sm font-medium text-gray-500 mb-1">Your FinPsych Score</p>
+                <p className="text-5xl font-bold text-gray-900 mb-2">
+                  {Math.round(finpsychScore)}
+                  <span className="text-lg text-gray-400 font-normal">/100</span>
+                </p>
+                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${riskConfig.bg} ${riskConfig.color}`}>
+                  {riskConfig.label}
+                </span>
+                <p className="text-sm text-gray-500 mt-2">{riskConfig.description}</p>
+              </div>
+            )}
 
             {/* Info Box */}
             <div className="bg-gray-50 rounded-xl p-4 mb-8 text-left">
@@ -43,7 +94,7 @@ export default function SubmittedPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-teal-500 mt-0.5">2.</span>
-                  <span>The institution will receive your credit worthiness score</span>
+                  <span>The institution will receive your creditworthiness score</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-teal-500 mt-0.5">3.</span>
@@ -55,7 +106,6 @@ export default function SubmittedPage() {
             {/* Back to Home Button */}
             <button
               onClick={() => {
-                // Redirect to admin landing page
                 const adminUrl = import.meta.env.VITE_ADMIN_URL || 'https://finpsych-admin.netlify.app';
                 window.location.href = adminUrl;
               }}
