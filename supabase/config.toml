@@ -1,10 +1,6 @@
 # Supabase Configuration
 # See: https://supabase.com/docs/guides/cli/config
 
-[project]
-id = "your-project-id"
-name = "fintech-credit-app"
-
 [api]
 enabled = true
 port = 54321
@@ -21,7 +17,13 @@ enabled = true
 port = 54323
 
 [auth]
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://localhost:3001", "http://localhost:3002"]
+site_url = "https://app.finpsych.app"
+additional_redirect_urls = [
+  "https://institution.finpsych.app",
+  "https://admin.finpsych.app",
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:3002"
+]
 jwt_expiry = 3600
 enable_signup = true
