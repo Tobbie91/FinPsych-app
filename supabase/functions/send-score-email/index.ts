@@ -105,7 +105,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'FinPsych <onboarding@resend.dev>',
+        from: 'FinPsych <scores@finpsych.app>',
         to: [to],
         subject: `Your FinPsych Assessment Results - Score: ${score}/100`,
         html,
