@@ -14,11 +14,31 @@ interface EmailPayload {
   riskBand: string;
 }
 
-const RISK_BAND_STYLES: Record<string, { label: string; color: string; bg: string }> = {
-  LOW: { label: 'Low Risk', color: '#15803d', bg: '#dcfce7' },
-  MODERATE: { label: 'Moderate Risk', color: '#b45309', bg: '#fef3c7' },
-  HIGH: { label: 'High Risk', color: '#c2410c', bg: '#ffedd5' },
-  VERY_HIGH: { label: 'Very High Risk', color: '#b91c1c', bg: '#fee2e2' },
+const RISK_BAND_STYLES: Record<string, { label: string; color: string; bg: string; description: string }> = {
+  LOW: {
+    label: 'Low Risk',
+    color: '#15803d',
+    bg: '#dcfce7',
+    description: 'Strong financial profile with excellent creditworthiness indicators.'
+  },
+  MODERATE: {
+    label: 'Moderate Risk',
+    color: '#b45309',
+    bg: '#fef3c7',
+    description: 'Good financial profile with some areas for improvement.'
+  },
+  HIGH: {
+    label: 'Moderate-High Risk',
+    color: '#c2410c',
+    bg: '#ffedd5',
+    description: 'Developing financial profile with areas for strengthening.'
+  },
+  VERY_HIGH: {
+    label: 'High Risk',
+    color: '#b91c1c',
+    bg: '#fee2e2',
+    description: 'Financial profile requires significant improvement.'
+  },
 };
 
 serve(async (req) => {
@@ -61,33 +81,54 @@ serve(async (req) => {
 
     <!-- Body -->
     <div style="padding:32px;">
-      <p style="color:#374151;font-size:16px;margin:0 0 8px;">Hi ${applicantName},</p>
-      <p style="color:#6b7280;font-size:15px;line-height:1.6;margin:0 0 24px;">
-        Thank you for completing the FinPsych Assessment. Here are your results:
+      <!-- Success Icon -->
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="display:inline-block;width:60px;height:60px;background:#d1fae5;border-radius:50%;text-align:center;line-height:60px;font-size:30px;">✅</div>
+      </div>
+
+      <!-- Title -->
+      <h2 style="color:#111827;font-size:24px;font-weight:bold;text-align:center;margin:0 0 12px;">Assessment Submitted! ✅</h2>
+
+      <!-- Message -->
+      <p style="color:#6b7280;font-size:15px;line-height:1.6;text-align:center;margin:0 0 24px;">
+        Thank you for completing the FinPsych Assessment.<br>
+        Your responses have been recorded and will be reviewed by our team.
       </p>
 
       <!-- Score Card -->
-      <div style="background:${risk.bg};border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;border:2px solid ${risk.color}20;">
-        <p style="color:#6b7280;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin:0 0 8px;">Your FinPsych Score</p>
-        <p style="font-size:48px;font-weight:bold;color:#111827;margin:0;">
+      <div style="background:${risk.bg};border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;border:2px solid ${risk.color};">
+        <p style="color:#6b7280;font-size:13px;font-weight:500;margin:0 0 4px;">Your FinPsych Score</p>
+        <p style="font-size:48px;font-weight:bold;color:#111827;margin:0 0 12px;">
           ${score}<span style="font-size:18px;color:#9ca3af;font-weight:normal;">/100</span>
         </p>
-        <div style="display:inline-block;padding:4px 14px;border-radius:20px;background:${risk.bg};color:${risk.color};font-size:14px;font-weight:600;margin-top:8px;">
-          ${risk.label}
+        <p style="color:#374151;font-size:14px;font-weight:600;margin:0 0 4px;">
+          Risk Band: <span style="color:${risk.color};">${risk.label}</span>
+        </p>
+        <p style="color:#6b7280;font-size:14px;margin:8px 0 0;">${risk.description}</p>
+      </div>
+
+      <!-- What's Next -->
+      <div style="background:#f9fafb;border-radius:12px;padding:20px;margin-bottom:24px;">
+        <p style="color:#111827;font-size:15px;font-weight:600;margin:0 0 12px;">What happens next?</p>
+        <div style="margin-bottom:8px;">
+          <span style="color:#0d9488;font-weight:600;">1.</span>
+          <span style="color:#6b7280;font-size:14px;line-height:1.6;margin-left:8px;">Your FinPsych Score has been calculated and saved securely.</span>
+        </div>
+        <div style="margin-bottom:8px;">
+          <span style="color:#0d9488;font-weight:600;">2.</span>
+          <span style="color:#6b7280;font-size:14px;line-height:1.6;margin-left:8px;">We will review your assessment results along with your application.</span>
+        </div>
+        <div>
+          <span style="color:#0d9488;font-weight:600;">3.</span>
+          <span style="color:#6b7280;font-size:14px;line-height:1.6;margin-left:8px;">You'll hear back within 3-5 business days regarding your application status.</span>
         </div>
       </div>
 
-      <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 24px;">
-        This score reflects your financial psychology profile based on your responses. The institution you applied through will use this as part of their evaluation.
+      <!-- Contact Info -->
+      <p style="color:#6b7280;font-size:14px;text-align:center;margin:0 0 24px;">
+        If you have questions, please contact
+        <a href="mailto:support@finpsych.app" style="color:#0d9488;text-decoration:none;font-weight:500;">support@finpsych.app</a>
       </p>
-
-      <!-- What's Next -->
-      <div style="background:#f9fafb;border-radius:10px;padding:20px;">
-        <p style="color:#374151;font-size:15px;font-weight:600;margin:0 0 12px;">What happens next?</p>
-        <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 8px;">1. Your results have been submitted to the institution.</p>
-        <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0 0 8px;">2. They will review your creditworthiness profile.</p>
-        <p style="color:#6b7280;font-size:14px;line-height:1.6;margin:0;">3. You may be contacted for additional information if needed.</p>
-      </div>
     </div>
 
     <!-- Footer -->

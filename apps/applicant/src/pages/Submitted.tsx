@@ -7,28 +7,28 @@ const RISK_BAND_CONFIG: Record<string, { label: string; color: string; bg: strin
     color: 'text-green-700',
     bg: 'bg-green-100',
     ring: 'ring-green-500',
-    description: 'Excellent financial profile',
+    description: 'Strong financial profile with excellent creditworthiness indicators.',
   },
   MODERATE: {
     label: 'Moderate Risk',
     color: 'text-amber-700',
     bg: 'bg-amber-100',
     ring: 'ring-amber-500',
-    description: 'Good financial profile with some areas for improvement',
+    description: 'Good financial profile with some areas for improvement.',
   },
   HIGH: {
-    label: 'High Risk',
+    label: 'Moderate-High Risk',
     color: 'text-orange-700',
     bg: 'bg-orange-100',
     ring: 'ring-orange-500',
-    description: 'Financial profile needs attention',
+    description: 'Developing financial profile with areas for strengthening.',
   },
   VERY_HIGH: {
-    label: 'Very High Risk',
+    label: 'High Risk',
     color: 'text-red-700',
     bg: 'bg-red-100',
     ring: 'ring-red-500',
-    description: 'Significant financial concerns identified',
+    description: 'Financial profile requires significant improvement.',
   },
 };
 
@@ -61,47 +61,56 @@ export default function SubmittedPage() {
 
             {/* Title */}
             <h1 className="text-2xl font-bold text-gray-900 mb-3">
-              Assessment Submitted!
+              Assessment Submitted! ✅
             </h1>
 
             {/* Message */}
             <p className="text-gray-600 mb-6">
-              Thank you for completing the FinPsych Assessment. Your responses have been recorded and will be reviewed by the institution.
+              Thank you for completing the FinPsych Assessment.<br />
+              Your responses have been recorded and will be reviewed by our team.
             </p>
 
             {/* FinPsych Score Card */}
             {finpsychScore != null && riskConfig && (
               <div className={`rounded-xl p-6 mb-6 ring-2 ${riskConfig.ring} ${riskConfig.bg}`}>
                 <p className="text-sm font-medium text-gray-500 mb-1">Your FinPsych Score</p>
-                <p className="text-5xl font-bold text-gray-900 mb-2">
+                <p className="text-5xl font-bold text-gray-900 mb-3">
                   {Math.round(finpsychScore)}
                   <span className="text-lg text-gray-400 font-normal">/100</span>
                 </p>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${riskConfig.bg} ${riskConfig.color}`}>
-                  {riskConfig.label}
-                </span>
-                <p className="text-sm text-gray-500 mt-2">{riskConfig.description}</p>
+                <p className="text-sm font-semibold text-gray-700 mb-1">
+                  Risk Band: <span className={riskConfig.color}>{riskConfig.label}</span>
+                </p>
+                <p className="text-sm text-gray-600 mt-2">{riskConfig.description}</p>
               </div>
             )}
 
             {/* Info Box */}
-            <div className="bg-gray-50 rounded-xl p-4 mb-8 text-left">
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 text-left">
               <h3 className="font-medium text-gray-900 mb-2">What happens next?</h3>
               <ul className="text-sm text-gray-600 space-y-2">
                 <li className="flex items-start gap-2">
                   <span className="text-teal-500 mt-0.5">1.</span>
-                  <span>Your responses are being analyzed by our scoring engine</span>
+                  <span>Your FinPsych Score has been calculated and saved securely.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-teal-500 mt-0.5">2.</span>
-                  <span>The institution will receive your creditworthiness score</span>
+                  <span>We will review your assessment results along with your application.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-teal-500 mt-0.5">3.</span>
-                  <span>You may be contacted for additional information if needed</span>
+                  <span>You'll hear back within 3-5 business days regarding your application status.</span>
                 </li>
               </ul>
             </div>
+
+            {/* Contact Info */}
+            <p className="text-sm text-gray-500 mb-8">
+              If you have questions, please contact{' '}
+              <a href="mailto:support@finpsych.app" className="text-teal-600 hover:text-teal-700 font-medium">
+                support@finpsych.app
+              </a>
+            </p>
 
             {/* Back to Home Button */}
             <button
