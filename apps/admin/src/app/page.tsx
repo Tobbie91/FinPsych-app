@@ -135,10 +135,10 @@ export default function HomePage() {
               FinPsych Score
             </h1>
             <p className="text-xl md:text-2xl text-teal-400 mb-3 font-medium">
-              Hybrid Psychometric–Neurocognitive Credit Assessment Framework
+              Hybrid Psychometric–Neurocognitive Credit Assessment Framework.
             </p>
             <p className="text-lg text-gray-300">
-              Democratizing creditworthiness for excluded populations
+              Redefining creditworthiness evaluation for credit invisibles.
             </p>
           </div>
 

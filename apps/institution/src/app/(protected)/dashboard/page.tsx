@@ -245,7 +245,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-8 py-4">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-8 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center">
@@ -258,26 +258,26 @@ export default function DashboardPage() {
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
             >
               {isLoggingOut ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <LogOut className="w-5 h-5" />
               )}
-              <span>Logout</span>
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-        <h1 className="text-xl font-semibold text-white">Welcome Back {userName}</h1>
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-8 py-6">
+        <h1 className="text-lg sm:text-xl font-semibold text-white">Welcome Back {userName}</h1>
       </div>
 
       {/* Main Content */}
-      <div className="p-8">
+      <div className="p-4 sm:p-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {/* Total Customers */}
@@ -439,18 +439,18 @@ export default function DashboardPage() {
               </div>
 
               {/* Search and Filters */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search"
                     value={searchQuery}
                     onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                    className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+                    className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-64"
                   />
                 </div>
-                <button className="px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
+                <button className="px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
                   <SlidersHorizontal className="w-4 h-4" />
                   Filters
                 </button>
@@ -458,8 +458,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
@@ -544,9 +544,69 @@ export default function DashboardPage() {
             </table>
           </div>
 
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3 p-4">
+            {paginatedApplicants.length === 0 ? (
+              <div className="py-12 text-center text-gray-500">
+                {applicants.length === 0
+                  ? 'No applicants yet. Share your questionnaire link to get started!'
+                  : 'No applicants found matching your criteria'}
+              </div>
+            ) : (
+              paginatedApplicants.map((applicant) => {
+                const eligible = isEligible(applicant);
+                const cwiScore = getCwiScore(applicant);
+
+                return (
+                  <div
+                    key={applicant.id}
+                    onClick={() => handleViewApplicant(applicant.id)}
+                    className="bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
+                  >
+                    {/* Name and Email */}
+                    <div className="mb-3">
+                      <p className="font-medium text-gray-900">{applicant.full_name || 'Unknown'}</p>
+                      <p className="text-sm text-gray-500">{applicant.email || 'No email'}</p>
+                    </div>
+
+                    {/* Score and Eligibility */}
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">CWI Score</p>
+                        <p className="text-lg font-semibold text-gray-900">
+                          {cwiScore !== null ? cwiScore.toFixed(1) : 'N/A'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className={`w-2 h-2 rounded-full ${eligible ? 'bg-teal-500' : 'bg-red-500'}`} />
+                        <span className={`text-sm font-medium ${eligible ? 'text-teal-600' : 'text-red-500'}`}>
+                          {eligible ? 'Eligible' : 'Not Eligible'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Date */}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">
+                        {applicant.submitted_at
+                          ? new Date(applicant.submitted_at).toLocaleDateString('en-US', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })
+                          : 'N/A'}
+                      </span>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
               <p className="text-sm text-gray-500">
                 Page {currentPage} of {totalPages}
               </p>

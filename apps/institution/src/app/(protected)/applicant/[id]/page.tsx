@@ -423,6 +423,8 @@ export default function ApplicantDetailPage() {
               <div className={`mb-6 p-4 border-l-4 rounded-r-lg ${
                 score.risk_band === 'HIGH' || score.risk_band === 'VERY_HIGH'
                   ? 'bg-red-50 border-red-500'
+                  : score.risk_band === 'MODERATE_HIGH'
+                  ? 'bg-amber-50 border-amber-500'
                   : score.risk_band === 'MODERATE'
                   ? 'bg-yellow-50 border-yellow-500'
                   : 'bg-green-50 border-green-500'

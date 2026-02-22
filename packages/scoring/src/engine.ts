@@ -600,10 +600,11 @@ export function calculateCWI(responses: RawResponses, country: string): ScoringR
     riskPercentile = zScoreToPercentile(cwiNormalized);
     riskPercentile = Math.round(riskPercentile * 100) / 100;
 
-    // Assign risk band directly from 0-100 score
-    if (cwi0100 >= 75) riskBand = 'LOW';
-    else if (cwi0100 >= 50) riskBand = 'MODERATE';
-    else if (cwi0100 >= 25) riskBand = 'HIGH';
+    // Assign risk band directly from 0-100 score (5 bands)
+    if (cwi0100 >= 70) riskBand = 'LOW';
+    else if (cwi0100 >= 60) riskBand = 'MODERATE';
+    else if (cwi0100 >= 50) riskBand = 'MODERATE_HIGH';
+    else if (cwi0100 >= 40) riskBand = 'HIGH';
     else riskBand = 'VERY_HIGH';
   }
 

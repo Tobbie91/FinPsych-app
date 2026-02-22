@@ -23,18 +23,24 @@ const RISK_BAND_STYLES: Record<string, { label: string; color: string; bg: strin
   },
   MODERATE: {
     label: 'Moderate Risk',
-    color: '#b45309',
-    bg: '#fef3c7',
+    color: '#ca8a04',
+    bg: '#fef9c3',
     description: 'Good financial profile with some areas for improvement.'
   },
-  HIGH: {
+  MODERATE_HIGH: {
     label: 'Moderate-High Risk',
-    color: '#c2410c',
-    bg: '#ffedd5',
+    color: '#b45309',
+    bg: '#fef3c7',
     description: 'Developing financial profile with areas for strengthening.'
   },
-  VERY_HIGH: {
+  HIGH: {
     label: 'High Risk',
+    color: '#c2410c',
+    bg: '#ffedd5',
+    description: 'Financial profile requires attention and improvement.'
+  },
+  VERY_HIGH: {
+    label: 'Very High Risk',
     color: '#b91c1c',
     bg: '#fee2e2',
     description: 'Financial profile requires significant improvement.'

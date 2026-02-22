@@ -788,36 +788,38 @@ export default function DashboardPage() {
   return (
     <div className="p-8 bg-gradient-to-br from-[#1a2332] via-[#1e2a3d] to-[#0f1419] min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-white">Responses overview</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
           <button
             onClick={handleManualRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-none"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
+            <span className="sm:hidden">Sync</span>
           </button>
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors"
+            className="flex items-center justify-center gap-2 px-4 py-2 text-gray-300 bg-[#2a3849] border border-slate-700 rounded-lg hover:bg-[#334155] transition-colors flex-1 sm:flex-none"
           >
             <Download className="w-4 h-4" />
-            Export
+            <span className="hidden sm:inline">Export</span>
+            <span className="sm:hidden">CSV</span>
           </button>
         </div>
       </div>
 
       {/* Detailed Assessment Breakdown Card */}
-      <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
+      <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-4 sm:p-6 mb-6">
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-white">Detailed Assessment Breakdown</h2>
           <p className="text-sm text-gray-400">Analysis of all survey responses</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-8 border-b border-slate-600 mb-6">
+        <div className="flex gap-4 sm:gap-8 border-b border-slate-600 mb-6">
           <button
             onClick={() => setActiveTab('summary')}
             className={`pb-3 text-sm font-medium transition-colors relative ${
@@ -847,7 +849,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total Responses */}
           <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl p-6 text-white shadow-lg">
             <p className="text-sm opacity-90 mb-2">Total Responses</p>
@@ -889,7 +891,7 @@ export default function DashboardPage() {
           <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
             <h3 className="text-lg font-semibold text-white mb-2">Fairness Metrics Dashboard</h3>
             <p className="text-sm text-gray-400 mb-4">Comparing approval rates and scores between Male and Female applicants</p>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Statistical Parity Difference */}
               <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
                 <p className="text-sm text-gray-300 mb-2">Statistical Parity Difference</p>
@@ -1150,14 +1152,14 @@ export default function DashboardPage() {
 
           {/* All Applicants Table */}
           <div className="bg-[#2a3849] rounded-xl border border-slate-700">
-            <div className="p-4 border-b border-slate-600 flex items-center justify-between">
+            <div className="p-4 border-b border-slate-600 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <h3 className="font-semibold text-white">All Applicants</h3>
                 <span className="px-2 py-1 bg-slate-700 text-gray-300 text-sm rounded-full">
                   {filteredApplicants.length} Total
                 </span>
               </div>
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
@@ -1167,7 +1169,7 @@ export default function DashboardPage() {
                     setSearchQuery(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="pl-10 pr-4 py-2 bg-[#334155] border border-slate-600 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 w-64"
+                  className="pl-10 pr-4 py-2 bg-[#334155] border border-slate-600 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 w-full md:w-64"
                 />
               </div>
             </div>
@@ -1299,6 +1301,7 @@ export default function DashboardPage() {
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                               risk === 'LOW' ? 'bg-green-100 text-green-700' :
                               risk === 'MODERATE' ? 'bg-yellow-100 text-yellow-700' :
+                              risk === 'MODERATE_HIGH' ? 'bg-amber-100 text-amber-700' :
                               risk === 'HIGH' ? 'bg-orange-100 text-orange-700' :
                               'bg-red-100 text-red-700'
                             }`}>
@@ -1430,6 +1433,7 @@ export default function DashboardPage() {
                             <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
                               risk === 'LOW' ? 'bg-green-100 text-green-700' :
                               risk === 'MODERATE' ? 'bg-yellow-100 text-yellow-700' :
+                              risk === 'MODERATE_HIGH' ? 'bg-amber-100 text-amber-700' :
                               risk === 'HIGH' ? 'bg-orange-100 text-orange-700' :
                               'bg-red-100 text-red-700'
                             }`}>
