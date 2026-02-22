@@ -10,6 +10,8 @@ import {
   Users,
   LogOut,
   Loader2,
+  Menu,
+  X,
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { ThemeToggle } from '@fintech/ui';
@@ -23,6 +25,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,9 +64,28 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1a2332] via-[#1e2a3d] to-[#0f1419] flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#1a2332] via-[#1e2a3d] to-[#0f1419] flex relative">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-[#1e2a3d] border border-slate-700/50 rounded-lg text-white hover:bg-[#2a3849] transition-colors"
+        aria-label="Toggle menu"
+      >
+        {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
+
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-[#1e2a3d]/50 border-r border-slate-700/50 backdrop-blur-sm flex flex-col">
+      <aside className={`w-64 bg-[#1e2a3d]/50 border-r border-slate-700/50 backdrop-blur-sm flex flex-col
+        ${isMobileMenuOpen ? 'fixed inset-y-0 left-0 z-40' : 'hidden'}
+        md:relative md:flex`}>
         {/* Logo */}
         <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -83,6 +105,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all ${
                   isActive
                     ? 'bg-gradient-to-r from-teal-500 to-cyan-600 text-white'
@@ -131,7 +154,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pt-16 md:pt-0">
         {children}
       </main>
     </div>
