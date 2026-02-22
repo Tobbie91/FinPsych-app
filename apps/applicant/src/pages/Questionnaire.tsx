@@ -21,6 +21,15 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
+// Helper function to calculate risk band from FinPsych score
+function calculateRiskBandFromFinPsych(finPsychScore: number): string {
+  if (finPsychScore >= 70) return 'LOW';
+  if (finPsychScore >= 60) return 'MODERATE';
+  if (finPsychScore >= 50) return 'MODERATE_HIGH';
+  if (finPsychScore >= 40) return 'HIGH';
+  return 'VERY_HIGH';
+}
+
 // Types for metadata tracking
 interface QuestionMetadata {
   questionId: string;
@@ -835,17 +844,30 @@ export default function QuestionnairePage() {
           validation.consistencyScore
         );
 
+        // Calculate risk band based on FinPsych score (not CWI)
+        const finPsychBasedRiskBand = finPsychResult?.score != null
+          ? calculateRiskBandFromFinPsych(finPsychResult.score)
+          : scoringResult.riskBand; // Fallback to CWI-based if FinPsych unavailable
+
         // Update applicant with CWI score summary and FinPsych score
         await supabase
           .from('applicants')
           .update({
             cwi_score: scoringResult.cwi0100,
-            risk_category: scoringResult.riskBand,
+            risk_category: finPsychBasedRiskBand, // Use FinPsych-based risk band
             scored_at: scoringResult.scoredAt,
             finpsych_score: finPsychResult?.score ?? null,
             data_reliability: finPsychResult?.reliability ?? null,
           })
           .eq('id', applicantData.id);
+
+        // Also update the scores table with FinPsych-based risk band
+        if (finPsychResult?.score != null) {
+          await supabase
+            .from('scores')
+            .update({ risk_band: finPsychBasedRiskBand })
+            .eq('applicant_id', applicantData.id);
+        }
 
         // Clear local storage draft
         localStorage.removeItem(`finpsych_draft_${sessionMetadata.sessionId}`);
@@ -859,7 +881,7 @@ export default function QuestionnairePage() {
               to: applicantEmail,
               applicantName,
               finpsychScore: finPsychResult.score,
-              riskBand: scoringResult.riskBand,
+              riskBand: finPsychBasedRiskBand, // Use FinPsych-based risk band
             },
           }).then(({ error }) => {
             if (error) console.error('Email send failed:', error);
@@ -871,7 +893,7 @@ export default function QuestionnairePage() {
         navigate('/submitted', {
           state: {
             finpsychScore: finPsychResult?.score ?? null,
-            riskBand: scoringResult.riskBand,
+            riskBand: finPsychBasedRiskBand, // Use FinPsych-based risk band
           },
         });
       } catch (err) {
