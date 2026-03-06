@@ -13,13 +13,28 @@ export interface ConsistencyFlag {
   questions: string[];
 }
 
+export interface GamingFlag {
+  flagId: string;         // FLAG_1A, FLAG_2A, FLAG_3A, FLAG_7A, FLAG_9A
+  sourceCheckId: string;  // CHECK_1, CHECK_2, CHECK_3, CHECK_7, CHECK_9
+  weight: number;         // always 3
+  checkName: string;
+  description: string;
+}
+
 export interface ValidationResult {
+  // Existing fields (backward compatible)
   totalChecks: number;
-  inconsistenciesDetected: number;
+  inconsistenciesDetected: number;       // Total of ALL 16 checks (kept for compat)
   severityLevel: 'MINOR' | 'MODERATE' | 'SEVERE';
-  consistencyScore: number; // 0-100
-  flags: ConsistencyFlag[];
+  consistencyScore: number;              // v3.2: 100 - (consistencyFlagCount * 15)
+  flags: ConsistencyFlag[];              // ALL triggered flags (kept for compat)
   recommendation: 'PROCEED' | 'REVIEW' | 'RETAKE';
+  // v3.2 additions
+  gamingFlags: GamingFlag[];             // 0-5 triggered gaming flags
+  gamingWeightedScore: number;           // sum of weights (max 15)
+  gamingFlagCount: number;               // 0-5
+  consistencyFlags: ConsistencyFlag[];   // only non-gaming flags (checks 4,5,6,8,10-16)
+  consistencyFlagCount: number;          // 0-11
 }
 
 export type QuestionnaireResponses = Record<string, string | number>;
@@ -513,8 +528,147 @@ function check16(responses: QuestionnaireResponses): ConsistencyFlag | null {
   return null;
 }
 
+// ============================================================================
+// v3.2 Gaming Flag Detection — GD Cross-Validation (Section 2.3)
+// ============================================================================
+
+/** Check IDs excluded from consistency scoring (overlap with GD gaming flags) */
+const GAMING_EXCLUDED_CHECK_IDS = new Set(['CHECK_1', 'CHECK_2', 'CHECK_3', 'CHECK_7', 'CHECK_9']);
+
+const GAMING_FLAG_WEIGHT = 3;
+
 /**
- * Main validation function - runs all 16 consistency checks
+ * Extract choice letter (A/B/C/D) from a gaming detection response string.
+ * Responses are stored as e.g. "A) Add it to savings for a specific goal."
+ */
+function extractGdChoice(response: string | number | undefined): string {
+  if (!response || typeof response !== 'string') return '';
+  const match = response.match(/^([A-D])\)/);
+  return match ? match[1] : '';
+}
+
+/**
+ * FLAG_1A: Future orientation self-report strength + GD_Q1 = D
+ * Triggers when Q60 >= 4 (Often+), Q61 >= 4, Q9 >= 4 AND gd1 choice = D
+ */
+function detectFlag1A(responses: QuestionnaireResponses): GamingFlag | null {
+  const q60 = convertToNumeric(responses.q60 || 3);
+  const q61 = convertToNumeric(responses.q61 || 3);
+  const q9 = convertToNumeric(responses.q9 || 3);
+  const gdChoice = extractGdChoice(responses.gd1);
+
+  if (q60 >= 4 && q61 >= 4 && q9 >= 4 && gdChoice === 'D') {
+    return {
+      flagId: 'FLAG_1A',
+      sourceCheckId: 'GD_Q1',
+      weight: GAMING_FLAG_WEIGHT,
+      checkName: 'Future Orientation GD Mismatch',
+      description: `Claims high future orientation (Q60=${q60}, Q61=${q61}) and saves regularly (Q9=${q9}), but GD scenario reveals impulsive spending (GD_Q1=D)`,
+    };
+  }
+  return null;
+}
+
+/**
+ * FLAG_2A: Perfect impulse control self-report + GD_Q2 = A
+ * Triggers when Q47 >= 4, Q48_R >= 4, Q49_R >= 4, Q53 >= 4 AND gd2 choice = A
+ */
+function detectFlag2A(responses: QuestionnaireResponses): GamingFlag | null {
+  const q47 = convertToNumeric(responses.q47 || 3);
+  const q48Raw = convertToNumeric(responses.q48 || 3);
+  const q49Raw = convertToNumeric(responses.q49 || 3);
+  const q53 = convertToNumeric(responses.q53 || 3);
+  const gdChoice = extractGdChoice(responses.gd2);
+
+  const q48R = reverseCode(q48Raw);
+  const q49R = reverseCode(q49Raw);
+
+  if (q47 >= 4 && q48R >= 4 && q49R >= 4 && q53 >= 4 && gdChoice === 'A') {
+    return {
+      flagId: 'FLAG_2A',
+      sourceCheckId: 'GD_Q2',
+      weight: GAMING_FLAG_WEIGHT,
+      checkName: 'Impulse Control GD Mismatch',
+      description: `Claims perfect impulse control (Q47=${q47}, Q48_R=${q48R}, Q49_R=${q49R}, Q53=${q53}), but GD scenario reveals impulse buying (GD_Q2=A)`,
+    };
+  }
+  return null;
+}
+
+/**
+ * FLAG_3A: Expense tracking self-report strength + GD_Q3 = C or D
+ * Triggers when Q8 >= 4, Q11 >= 4 AND gd3 choice = C or D
+ */
+function detectFlag3A(responses: QuestionnaireResponses): GamingFlag | null {
+  const q8 = convertToNumeric(responses.q8 || 3);
+  const q11 = convertToNumeric(responses.q11 || 3);
+  const gdChoice = extractGdChoice(responses.gd3);
+
+  if (q8 >= 4 && q11 >= 4 && (gdChoice === 'C' || gdChoice === 'D')) {
+    return {
+      flagId: 'FLAG_3A',
+      sourceCheckId: 'GD_Q3',
+      weight: GAMING_FLAG_WEIGHT,
+      checkName: 'Expense Tracking GD Mismatch',
+      description: `Claims strong expense tracking (Q8=${q8}) and budgeting (Q11=${q11}), but GD scenario reveals weak tracking (GD_Q3=${gdChoice})`,
+    };
+  }
+  return null;
+}
+
+/**
+ * FLAG_7A: Savings strength + GD_Q7 = C
+ * Triggers when Q9 >= 4, Q15 savingsLevel >= 3 (4-6+ months) AND gd7 choice = C
+ */
+function detectFlag7A(responses: QuestionnaireResponses): GamingFlag | null {
+  const q9 = convertToNumeric(responses.q9 || 3);
+  const q15 = responses.q15 as string;
+  const gdChoice = extractGdChoice(responses.gd7);
+
+  const savingsMap: Record<string, number> = {
+    'None': 0, '1 month': 1, '2–3 months': 2, '4–6 months': 3, 'More than 6 months': 4,
+  };
+  const savingsLevel = savingsMap[q15] ?? 0;
+
+  if (q9 >= 4 && savingsLevel >= 3 && gdChoice === 'C') {
+    return {
+      flagId: 'FLAG_7A',
+      sourceCheckId: 'GD_Q7',
+      weight: GAMING_FLAG_WEIGHT,
+      checkName: 'Savings Behavior GD Mismatch',
+      description: `Claims to always save (Q9=${q9}) with ${q15} savings, but GD scenario reveals unexpected expenses disrupted saving (GD_Q7=C)`,
+    };
+  }
+  return null;
+}
+
+/**
+ * FLAG_9A: Financial integrity self-report + GD_Q9 = B or D
+ * Triggers when Q16c_R >= 4, Q16d_R >= 4 (would never skip) AND gd9 choice = B or D
+ */
+function detectFlag9A(responses: QuestionnaireResponses): GamingFlag | null {
+  const q16cRaw = convertToNumeric(responses.q16c || 3);
+  const q16dRaw = convertToNumeric(responses.q16d || 3);
+  const gdChoice = extractGdChoice(responses.gd9);
+
+  const q16cR = reverseCode(q16cRaw);
+  const q16dR = reverseCode(q16dRaw);
+
+  if (q16cR >= 4 && q16dR >= 4 && (gdChoice === 'B' || gdChoice === 'D')) {
+    return {
+      flagId: 'FLAG_9A',
+      sourceCheckId: 'GD_Q9',
+      weight: GAMING_FLAG_WEIGHT,
+      checkName: 'Repayment Integrity GD Mismatch',
+      description: `Claims would never skip repayment (Q16c_R=${q16cR}, Q16d_R=${q16dR}), but GD scenario reveals willingness to deprioritize loan (GD_Q9=${gdChoice})`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Main validation function - runs all 16 consistency checks + 5 GD gaming detectors
+ * v3.2: Gaming flags from GD cross-validation; consistency from non-gaming checks (4,5,6,8,10-16)
  */
 export function validateResponses(responses: QuestionnaireResponses): ValidationResult {
   const checks = [
@@ -532,12 +686,28 @@ export function validateResponses(responses: QuestionnaireResponses): Validation
     }
   });
 
+  // v3.2: Consistency flags = only non-gaming checks (4,5,6,8,10-16)
+  const consistencyFlags = flags.filter(f => !GAMING_EXCLUDED_CHECK_IDS.has(f.checkId));
+  const consistencyFlagCount = consistencyFlags.length;
+
+  // v3.2: Gaming flags from GD cross-validation (Section 2.3)
+  const gamingFlags: GamingFlag[] = [];
+  const gdDetectors = [detectFlag1A, detectFlag2A, detectFlag3A, detectFlag7A, detectFlag9A];
+  for (const detect of gdDetectors) {
+    const flag = detect(responses);
+    if (flag) gamingFlags.push(flag);
+  }
+
+  const gamingWeightedScore = gamingFlags.length * GAMING_FLAG_WEIGHT;
+  const gamingFlagCount = gamingFlags.length;
+
+  // v3.2: Consistency score uses only non-gaming flags, multiplier = 15
+  const consistencyScore = Math.max(0, 100 - (consistencyFlagCount * 15));
+
+  // Backward compat: total count across all 16 checks
   const inconsistenciesDetected = flags.length;
 
-  // Calculate consistency score: 100 - (Inconsistency Count × 7)
-  const consistencyScore = Math.max(0, 100 - (inconsistenciesDetected * 7));
-
-  // Determine severity level
+  // Determine severity level (based on total, backward compat)
   let severityLevel: 'MINOR' | 'MODERATE' | 'SEVERE';
   let recommendation: 'PROCEED' | 'REVIEW' | 'RETAKE';
 
@@ -559,6 +729,12 @@ export function validateResponses(responses: QuestionnaireResponses): Validation
     consistencyScore,
     flags,
     recommendation,
+    // v3.2 additions
+    gamingFlags,
+    gamingWeightedScore,
+    gamingFlagCount,
+    consistencyFlags,
+    consistencyFlagCount,
   };
 }
 

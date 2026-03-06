@@ -4,7 +4,7 @@
  * Run with: npx ts-node src/tests/scoring.test.ts
  *
  * Tests:
- * 1. NCI Formula: 50% ASFN + 50% LCA (Jane Smith: ASFN=20, LCA=60 => NCI=40)
+ * 1. NCI Formula v3.2: ASFN calibration (p=0.30) + LCA raw total
  * 2. Five Cs Scale: 0-100 (no negatives)
  * 3. Collateral Mapping: Uses social_support, financial_behaviour
  * 4. No "Consistency" in FiveCScores interface
@@ -42,34 +42,54 @@ function assertTrue(condition: boolean, message?: string) {
 }
 
 // ============================================================================
-// TEST 1: NCI Formula (50% ASFN + 50% LCA)
+// TEST 1: NCI Formula v3.2 — ASFN calibration (p=0.30) + LCA raw
+// Formula: NCI = (0.5 × ASFN_adj) + ((10/3) × LCA_raw)
+//   where  ASFN_adj = 100 × (finNum)^0.30
 // ============================================================================
-test('NCI Formula: Jane Smith (ASFN=20, LCA=60) => NCI=40', () => {
-  const asfnScore = 20;
-  const lcaPercent = 60;
+test('NCI v3.2: Perfect scores (finNum=1.0, lcaRaw=15) => NCI=100.0', () => {
+  const finNum = 1.0;
+  const lcaRaw = 15;
 
-  // NCI = 50% ASFN + 50% LCA
-  const nciScore = (asfnScore * 0.5) + (lcaPercent * 0.5);
+  const asfnAdj = 100 * Math.pow(finNum, 0.30);  // 100
+  const nci = (0.5 * asfnAdj) + ((10 / 3) * lcaRaw);  // 50 + 50 = 100
 
-  assertEqual(nciScore, 40, 'NCI calculation');
+  assertEqual(Math.round(nci * 10) / 10, 100.0, 'NCI perfect scores');
 });
 
-test('NCI Formula: Perfect scores (ASFN=100, LCA=100) => NCI=100', () => {
-  const asfnScore = 100;
-  const lcaPercent = 100;
+test('NCI v3.2: Zero scores (finNum=0, lcaRaw=0) => NCI=0', () => {
+  const finNum = 0;
+  const lcaRaw = 0;
 
-  const nciScore = (asfnScore * 0.5) + (lcaPercent * 0.5);
+  const asfnAdj = 100 * Math.pow(finNum, 0.30);  // 0
+  const nci = (0.5 * asfnAdj) + ((10 / 3) * lcaRaw);  // 0 + 0 = 0
 
-  assertEqual(nciScore, 100, 'NCI calculation');
+  assertEqual(Math.round(nci * 10) / 10, 0, 'NCI zero scores');
 });
 
-test('NCI Formula: Zero scores (ASFN=0, LCA=0) => NCI=0', () => {
-  const asfnScore = 0;
-  const lcaPercent = 0;
+test('NCI v3.2: Chioma case (finNum=0.40, lcaRaw=9) => NCI=68.0', () => {
+  // ASFN_adj = 100 × 0.40^0.30 = 75.97
+  // NCI = (0.5 × 75.97) + ((10/3) × 9) = 37.99 + 30.0 = 67.99 => 68.0
+  const finNum = 0.40;
+  const lcaRaw = 9;
 
-  const nciScore = (asfnScore * 0.5) + (lcaPercent * 0.5);
+  const asfnAdj = 100 * Math.pow(finNum, 0.30);
+  const nci = (0.5 * asfnAdj) + ((10 / 3) * lcaRaw);
+  const rounded = Math.round(nci * 10) / 10;
 
-  assertEqual(nciScore, 0, 'NCI calculation');
+  assertEqual(rounded, 68.0, 'NCI Chioma validation case');
+});
+
+test('NCI v3.2: Low ASFN (finNum=0.20, lcaRaw=5) => reasonable range', () => {
+  // ASFN_adj = 100 × 0.20^0.30 = 61.72
+  // NCI = (0.5 × 61.72) + ((10/3) × 5) = 30.86 + 16.67 = 47.53 => 47.5
+  const finNum = 0.20;
+  const lcaRaw = 5;
+
+  const asfnAdj = 100 * Math.pow(finNum, 0.30);
+  const nci = (0.5 * asfnAdj) + ((10 / 3) * lcaRaw);
+  const rounded = Math.round(nci * 10) / 10;
+
+  assertTrue(rounded >= 47.0 && rounded <= 48.0, `NCI low ASFN=${rounded} expected ~47.5`);
 });
 
 // ============================================================================
@@ -108,22 +128,58 @@ test('Five Cs normalizeToHundred: Clamping (Raw 6 => 100, not over)', () => {
 });
 
 // ============================================================================
-// TEST 3: Collateral Mapping
+// TEST 3: Five C Mapping (v3.2 Section 2.1)
 // ============================================================================
-test('FIVE_C_MAP has "collateral" key (not "consistency")', () => {
-  assertTrue('collateral' in FIVE_C_MAP, 'collateral key exists');
+test('FIVE_C_MAP has exactly 5 keys: character, capacity, capital, collateral, conditions', () => {
+  const keys = Object.keys(FIVE_C_MAP).sort();
+  assertEqual(keys.join(','), 'capacity,capital,character,collateral,conditions', 'Five C keys');
   assertTrue(!('consistency' in FIVE_C_MAP), 'consistency key should NOT exist');
 });
 
-test('Collateral maps to social_support and financial_behaviour', () => {
-  const collateralConstructs = FIVE_C_MAP['collateral'];
-  assertTrue(collateralConstructs.includes('social_support'), 'Contains social_support');
-  assertTrue(collateralConstructs.includes('financial_behaviour'), 'Contains financial_behaviour');
+test('Character = [self_control, conscientiousness, agreeableness, emotional_stability] (4 constructs)', () => {
+  const c = FIVE_C_MAP['character'].slice().sort();
+  assertEqual(c.length, 4, 'Character has 4 constructs');
+  assertEqual(c.join(','), 'agreeableness,conscientiousness,emotional_stability,self_control', 'Character constructs');
 });
 
-test('FIVE_C_WEIGHTS has "collateral" key (not "consistency")', () => {
-  assertTrue('collateral' in FIVE_C_WEIGHTS, 'collateral weight exists');
-  assertTrue(!('consistency' in FIVE_C_WEIGHTS), 'consistency weight should NOT exist');
+test('Character does NOT include extraversion', () => {
+  assertTrue(!FIVE_C_MAP['character'].includes('extraversion'), 'No extraversion in character');
+});
+
+test('Capacity = [payment_history, financial_management, crisis_management] (3 constructs)', () => {
+  const c = FIVE_C_MAP['capacity'].slice().sort();
+  assertEqual(c.length, 3, 'Capacity has 3 constructs');
+  assertEqual(c.join(','), 'crisis_management,financial_management,payment_history', 'Capacity constructs');
+});
+
+test('Capacity does NOT include financial_integrity', () => {
+  assertTrue(!FIVE_C_MAP['capacity'].includes('financial_integrity'), 'No financial_integrity in capacity');
+});
+
+test('Capital = [emergency_preparedness] (1 construct)', () => {
+  assertEqual(FIVE_C_MAP['capital'].length, 1, 'Capital has 1 construct');
+  assertEqual(FIVE_C_MAP['capital'][0], 'emergency_preparedness', 'Capital construct');
+});
+
+test('Collateral = [social_collateral] (Q59, Q16b, Q16e)', () => {
+  assertEqual(FIVE_C_MAP['collateral'].length, 1, 'Collateral has 1 construct');
+  assertEqual(FIVE_C_MAP['collateral'][0], 'social_collateral', 'Collateral construct');
+});
+
+test('Conditions = [future_orientation, risk_preference, locus_of_control] (3 constructs)', () => {
+  const c = FIVE_C_MAP['conditions'].slice().sort();
+  assertEqual(c.length, 3, 'Conditions has 3 constructs');
+  assertEqual(c.join(','), 'future_orientation,locus_of_control,risk_preference', 'Conditions constructs');
+});
+
+test('Conditions does NOT include openness', () => {
+  assertTrue(!FIVE_C_MAP['conditions'].includes('openness'), 'No openness in conditions');
+});
+
+test('All Five Cs weights are equal at 0.20', () => {
+  for (const [key, weight] of Object.entries(FIVE_C_WEIGHTS)) {
+    assertEqual(weight, 0.20, `${key} weight`);
+  }
 });
 
 test('All Five Cs weights sum to 1.0', () => {

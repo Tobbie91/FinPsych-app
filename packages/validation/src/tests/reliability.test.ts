@@ -7,14 +7,14 @@
  * 1. round1 utility function
  * 2. Reliability mapping from gaming risk
  * 3. Legacy label normalization ("GOOD" -> HIGH)
- * 4. FinPsych calculation with consistency adjustments
+ * 4. FinPsych v3.2 adaptive weighting via inverse-variance (Eq. 5-14)
  * 5. QA scenarios (Perfect Scorer, Gaming Suspected, Moderate)
+ * 6. Guide validation scenarios (5 reference cases)
  */
 
 import {
   round1,
   getReliabilityFromGamingRisk,
-  getFinPsychWeights,
   calculateFinPsychScore,
 } from '../reliability';
 
@@ -49,6 +49,12 @@ function assertTrue(condition: boolean, message?: string) {
   }
 }
 
+function assertApprox(actual: number, expected: number, tolerance: number, message?: string) {
+  if (Math.abs(actual - expected) > tolerance) {
+    throw new Error(`${message || 'Approx assertion failed'}: Expected ~${expected}, got ${actual} (tolerance ${tolerance})`);
+  }
+}
+
 // ============================================================================
 // Tests: round1 utility
 // ============================================================================
@@ -73,39 +79,39 @@ test('round1 handles edge case 0.5 rounding', () => {
 });
 
 // ============================================================================
-// Tests: Reliability mapping
+// Tests: Reliability mapping (unchanged — derived from gaming risk only)
 // ============================================================================
 
 console.log('\n=== Reliability Mapping ===\n');
 
-test('MINIMAL gaming risk => HIGH reliability', () => {
+test('MINIMAL gaming risk => HIGH reliability (Minimal label)', () => {
   const result = getReliabilityFromGamingRisk('MINIMAL');
   assertEqual(result?.level, 'HIGH');
-  assertEqual(result?.label, 'HIGH');
+  assertEqual(result?.label, 'Minimal');
 });
 
-test('LOW gaming risk => MODERATE_HIGH reliability', () => {
+test('LOW gaming risk => MODERATE_HIGH reliability (Low label)', () => {
   const result = getReliabilityFromGamingRisk('LOW');
   assertEqual(result?.level, 'MODERATE_HIGH');
-  assertEqual(result?.label, 'MODERATE-HIGH');
+  assertEqual(result?.label, 'Low');
 });
 
-test('MODERATE gaming risk => MODERATE reliability', () => {
+test('MODERATE gaming risk => MODERATE reliability (Moderate label)', () => {
   const result = getReliabilityFromGamingRisk('MODERATE');
   assertEqual(result?.level, 'MODERATE');
-  assertEqual(result?.label, 'MODERATE');
+  assertEqual(result?.label, 'Moderate');
 });
 
-test('HIGH gaming risk => LOW reliability', () => {
+test('HIGH gaming risk => LOW reliability (High label)', () => {
   const result = getReliabilityFromGamingRisk('HIGH');
   assertEqual(result?.level, 'LOW');
-  assertEqual(result?.label, 'LOW');
+  assertEqual(result?.label, 'High');
 });
 
-test('SEVERE gaming risk => VERY_LOW reliability', () => {
+test('SEVERE gaming risk => VERY_LOW reliability (Severe label)', () => {
   const result = getReliabilityFromGamingRisk('SEVERE');
   assertEqual(result?.level, 'VERY_LOW');
-  assertEqual(result?.label, 'VERY LOW');
+  assertEqual(result?.label, 'Severe');
 });
 
 // ============================================================================
@@ -140,136 +146,133 @@ test('Handles lowercase input', () => {
 });
 
 // ============================================================================
-// Tests: FinPsych Weights
+// Tests: FinPsych v3.2 Adaptive Weighting (Inverse-Variance, Eq. 5–14)
 // ============================================================================
 
-console.log('\n=== FinPsych Weights ===\n');
+console.log('\n=== FinPsych v3.2 Adaptive Weighting ===\n');
 
-test('HIGH reliability weights: 50/50', () => {
-  const weights = getFinPsychWeights('HIGH');
-  assertEqual(weights.cwi, 0.50);
-  assertEqual(weights.nci, 0.50);
-});
-
-test('MODERATE_HIGH reliability weights: 45/55', () => {
-  const weights = getFinPsychWeights('MODERATE_HIGH');
-  assertEqual(weights.cwi, 0.45);
-  assertEqual(weights.nci, 0.55);
-});
-
-test('MODERATE reliability weights: 35/65', () => {
-  const weights = getFinPsychWeights('MODERATE');
-  assertEqual(weights.cwi, 0.35);
-  assertEqual(weights.nci, 0.65);
-});
-
-test('LOW reliability weights: 25/75', () => {
-  const weights = getFinPsychWeights('LOW');
-  assertEqual(weights.cwi, 0.25);
-  assertEqual(weights.nci, 0.75);
-});
-
-test('VERY_LOW reliability weights: 15/85', () => {
-  const weights = getFinPsychWeights('VERY_LOW');
-  assertEqual(weights.cwi, 0.15);
-  assertEqual(weights.nci, 0.85);
-});
-
-// ============================================================================
-// Tests: FinPsych Calculation
-// ============================================================================
-
-console.log('\n=== FinPsych Calculation ===\n');
-
-test('FinPsych calculation with HIGH reliability (MINIMAL gaming)', () => {
-  // CWI=80, NCI=90, MINIMAL gaming, consistency=100
+test('MINIMAL gaming, high consistency => w_cwi=0.50 (equal weighting)', () => {
+  // M_gaming=1.0, M_consistency=1.0 (100>=85) => sigma=1.0 => w_cwi=0.50
   const result = calculateFinPsychScore(80, 90, 'MINIMAL', 100);
-  // Weights: cwi=0.50, nci=0.50
-  // FinPsych = (80 * 0.50) + (90 * 0.50) = 40 + 45 = 85
+  assertApprox(result!.weights.cwi, 0.50, 0.01, 'w_cwi');
   assertEqual(result?.score, 85);
   assertEqual(result?.reliability, 'HIGH');
 });
 
-test('FinPsych calculation with MODERATE_HIGH reliability (LOW gaming)', () => {
-  // CWI=70, NCI=80, LOW gaming, consistency=80
+test('LOW gaming, moderate consistency => w_cwi≈0.43', () => {
+  // M_gaming=1.2, M_consistency=1.1 (80>=65) => sigma=1.32
+  // w_cwi = (1/1.32) / (1/1.32 + 1) = 0.431
   const result = calculateFinPsychScore(70, 80, 'LOW', 80);
-  // Weights: cwi=0.45, nci=0.55
-  // FinPsych = (70 * 0.45) + (80 * 0.55) = 31.5 + 44 = 75.5
-  assertEqual(result?.score, 75.5);
+  assertApprox(result!.weights.cwi, 0.43, 0.02, 'w_cwi');
   assertEqual(result?.reliability, 'MODERATE_HIGH');
 });
 
 // ============================================================================
-// Tests: Consistency Score Adjustments
+// Tests: Consistency affects WEIGHTS (not reliability label) in v3.2
 // ============================================================================
 
-console.log('\n=== Consistency Score Adjustments ===\n');
+console.log('\n=== Consistency Affects Weights (v3.2) ===\n');
 
-test('Low consistency (<65) forces VERY_LOW reliability', () => {
-  // CWI=90, NCI=90, MINIMAL gaming, but consistency=60
+test('Low consistency inflates CWI variance but reliability label stays based on gaming', () => {
+  // MINIMAL gaming + consistency=60 => M_gaming=1.0, M_consistency=1.3 (60>=45)
+  // sigma=1.3, w_cwi=1/1.3/(1/1.3+1)=0.769/1.769=0.435
+  // Reliability label: HIGH (from MINIMAL gaming — NOT overridden by consistency)
   const result = calculateFinPsychScore(90, 90, 'MINIMAL', 60);
-  // Consistency < 65 => reliability = VERY_LOW
-  // Weights: cwi=0.15, nci=0.85
-  // FinPsych = (90 * 0.15) + (90 * 0.85) = 13.5 + 76.5 = 90
-  assertEqual(result?.reliability, 'VERY_LOW');
-  assertEqual(result?.score, 90);
-});
-
-test('Medium consistency (65-74) forces LOW reliability', () => {
-  // CWI=90, NCI=90, MINIMAL gaming, but consistency=70
-  const result = calculateFinPsychScore(90, 90, 'MINIMAL', 70);
-  // Consistency 65-74 => reliability = LOW
-  // Weights: cwi=0.25, nci=0.75
-  // FinPsych = (90 * 0.25) + (90 * 0.75) = 22.5 + 67.5 = 90
-  assertEqual(result?.reliability, 'LOW');
-  assertEqual(result?.score, 90);
-});
-
-test('High consistency (>=75) keeps base reliability', () => {
-  // CWI=90, NCI=90, MINIMAL gaming, consistency=80
-  const result = calculateFinPsychScore(90, 90, 'MINIMAL', 80);
-  // Consistency >= 75 => keep base reliability (HIGH)
   assertEqual(result?.reliability, 'HIGH');
+  // With equal CWI/NCI, score is always 90 regardless of weights
+  assertEqual(result?.score, 90);
+  assertTrue(result!.weights.cwi < 0.50, 'Low consistency should reduce w_cwi below 0.50');
 });
 
-test('Null consistency does not affect reliability', () => {
-  // CWI=90, NCI=90, MINIMAL gaming, consistency=null
+test('Very low consistency (<45) uses highest multiplier', () => {
+  // MINIMAL gaming + consistency=30 => M_gaming=1.0, M_consistency=1.7
+  // sigma=1.7, w_cwi=1/1.7/(1/1.7+1)=0.588/1.588=0.370
+  const result = calculateFinPsychScore(80, 60, 'MINIMAL', 30);
+  assertEqual(result?.reliability, 'HIGH');
+  assertApprox(result!.weights.cwi, 0.37, 0.02, 'w_cwi with very low consistency');
+});
+
+test('High consistency (>=85) does not inflate variance', () => {
+  // MINIMAL gaming + consistency=90 => M_gaming=1.0, M_consistency=1.0
+  // sigma=1.0 => w_cwi=0.50
+  const result = calculateFinPsychScore(90, 90, 'MINIMAL', 90);
+  assertEqual(result?.reliability, 'HIGH');
+  assertApprox(result!.weights.cwi, 0.50, 0.01, 'w_cwi with high consistency');
+});
+
+test('Null consistency uses default multiplier (1.0)', () => {
   const result = calculateFinPsychScore(90, 90, 'MINIMAL', null);
-  // No consistency adjustment => keep base reliability (HIGH)
   assertEqual(result?.reliability, 'HIGH');
+  assertApprox(result!.weights.cwi, 0.50, 0.01, 'w_cwi with null consistency');
   assertEqual(result?.score, 90);
 });
 
 // ============================================================================
-// Tests: QA Scenarios
+// Tests: Guide Validation Scenarios (v3.2, approx values)
+// ============================================================================
+
+console.log('\n=== Guide Validation Scenarios ===\n');
+
+test('Guide Scenario 1: MINIMAL gaming, cons=90 => w_cwi≈0.50', () => {
+  // M_gaming=1.0, M_consistency=1.0 => sigma=1.0 => w_cwi=0.50
+  const result = calculateFinPsychScore(70, 80, 'MINIMAL', 90);
+  assertApprox(result!.weights.cwi, 0.50, 0.01, 'w_cwi');
+});
+
+test('Guide Scenario 2: LOW gaming, cons=75 => w_cwi≈0.43', () => {
+  // M_gaming=1.2, M_consistency=1.1 => sigma=1.32 => w_cwi=0.431
+  const result = calculateFinPsychScore(70, 80, 'LOW', 75);
+  assertApprox(result!.weights.cwi, 0.43, 0.02, 'w_cwi');
+});
+
+test('Guide Scenario 3: MODERATE gaming, cons=65 => w_cwi≈0.36', () => {
+  // M_gaming=1.6, M_consistency=1.1 => sigma=1.76 => w_cwi=0.362
+  const result = calculateFinPsychScore(70, 80, 'MODERATE', 65);
+  assertApprox(result!.weights.cwi, 0.36, 0.03, 'w_cwi');
+});
+
+test('Guide Scenario 4: HIGH gaming, cons=55 => w_cwi≈0.26', () => {
+  // M_gaming=2.2, M_consistency=1.3 => sigma=2.86 => w_cwi=0.259
+  const result = calculateFinPsychScore(70, 80, 'HIGH', 55);
+  assertApprox(result!.weights.cwi, 0.26, 0.02, 'w_cwi');
+});
+
+test('Guide Scenario 5: SEVERE gaming, cons=40 => w_cwi=0.25 (variance ceiling fix)', () => {
+  // M_gaming=3.0, M_consistency=1.7 => sigma=5.1 => CAPPED to 3.0
+  // w_cwi = (1/3) / (1/3 + 1) = 0.25
+  // This is the key bug fix: old table gave w_cwi=0.15, formula gives 0.25
+  const result = calculateFinPsychScore(100, 30, 'SEVERE', 40);
+  assertApprox(result!.weights.cwi, 0.25, 0.01, 'w_cwi (variance ceiling)');
+  assertApprox(result!.weights.nci, 0.75, 0.01, 'w_nci (variance ceiling)');
+  assertEqual(result?.reliability, 'VERY_LOW');
+});
+
+// ============================================================================
+// Tests: QA Scenarios (updated for v3.2 weights)
 // ============================================================================
 
 console.log('\n=== QA Scenarios ===\n');
 
 test('QA Scenario 1: Perfect Scorer - CWI=100, NCI=100 => FinPsych=100, HIGH', () => {
+  // M_gaming=1.0, M_consistency=1.0 => w_cwi=0.50
   const result = calculateFinPsychScore(100, 100, 'MINIMAL', 100);
-  // Weights: cwi=0.50, nci=0.50
-  // FinPsych = (100 * 0.50) + (100 * 0.50) = 50 + 50 = 100
   assertEqual(result?.score, 100);
   assertEqual(result?.reliability, 'HIGH');
 });
 
-test('QA Scenario 2: Gaming Suspected - CWI=100, NCI=30, SEVERE => FinPsych=40.5', () => {
+test('QA Scenario 2: Gaming Suspected - CWI=100, NCI=30, SEVERE, cons=30', () => {
+  // M_gaming=3.0, M_consistency=1.7 => sigma=5.1 => CAPPED 3.0 => w_cwi=0.25
+  // FinPsych = (100*0.25) + (30*0.75) = 25 + 22.5 = 47.5
+  // OLD was 40.5 (w_cwi=0.15) — this is the key fix
   const result = calculateFinPsychScore(100, 30, 'SEVERE', 30);
-  // Base reliability from SEVERE = VERY_LOW
-  // Consistency 30 < 65 => reliability stays VERY_LOW
-  // Weights: cwi=0.15, nci=0.85
-  // FinPsych = (100 * 0.15) + (30 * 0.85) = 15 + 25.5 = 40.5
-  assertEqual(result?.score, 40.5);
+  assertEqual(result?.score, 47.5);
   assertEqual(result?.reliability, 'VERY_LOW');
 });
 
-test('QA Scenario 3: Moderate Performer - CWI=65, NCI=70, LOW gaming, 80 consistency', () => {
+test('QA Scenario 3: Moderate Performer - CWI=65, NCI=70, LOW gaming, cons=80', () => {
+  // M_gaming=1.2, M_consistency=1.1 (80>=65) => sigma=1.32 => w_cwi=0.431
+  // FinPsych = (65*0.431) + (70*0.569) = 28.015 + 39.83 = 67.845 => 67.8
   const result = calculateFinPsychScore(65, 70, 'LOW', 80);
-  // Base reliability from LOW = MODERATE_HIGH
-  // Consistency 80 >= 75 => keep base reliability
-  // Weights: cwi=0.45, nci=0.55
-  // FinPsych = (65 * 0.45) + (70 * 0.55) = 29.25 + 38.5 = 67.75 => round1 = 67.8
   assertEqual(result?.score, 67.8);
   assertEqual(result?.reliability, 'MODERATE_HIGH');
 });
@@ -290,8 +293,6 @@ test('Null NCI returns null', () => {
 
 test('Null gaming risk level with null consistency uses MODERATE', () => {
   const result = calculateFinPsychScore(80, 80, null, null);
-  // No gaming risk => default MODERATE
-  // No consistency => no adjustment
   assertEqual(result?.reliability, 'MODERATE');
 });
 
@@ -303,6 +304,22 @@ test('Unknown gaming risk level uses MODERATE', () => {
 test('Null reliability from null input', () => {
   assertEqual(getReliabilityFromGamingRisk(null), null);
   assertEqual(getReliabilityFromGamingRisk(undefined), null);
+});
+
+test('Weights always sum to 1.0', () => {
+  const scenarios = [
+    { gaming: 'MINIMAL', cons: 100 },
+    { gaming: 'LOW', cons: 75 },
+    { gaming: 'MODERATE', cons: 65 },
+    { gaming: 'HIGH', cons: 55 },
+    { gaming: 'SEVERE', cons: 40 },
+  ];
+
+  for (const s of scenarios) {
+    const result = calculateFinPsychScore(70, 80, s.gaming, s.cons);
+    const sum = result!.weights.cwi + result!.weights.nci;
+    assertApprox(sum, 1.0, 0.0001, `Weights sum for ${s.gaming}/cons=${s.cons}`);
+  }
 });
 
 // ============================================================================

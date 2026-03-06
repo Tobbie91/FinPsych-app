@@ -597,6 +597,11 @@ export default function QuestionnairePage() {
         consistencyScore: 100,
         flags: [],
         recommendation: 'PROCEED',
+        gamingFlags: [],
+        gamingWeightedScore: 0,
+        gamingFlagCount: 0,
+        consistencyFlags: [],
+        consistencyFlagCount: 0,
       };
       handleSubmit(defaultValidation);
     }

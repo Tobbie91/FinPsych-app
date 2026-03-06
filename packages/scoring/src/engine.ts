@@ -354,6 +354,12 @@ function aggregateConstructs(responses: RawResponses): ConstructScores {
     constructScores[construct] = constructSums[construct] / constructCounts[construct];
   }
 
+  // Expose LCA raw total (0-15) for NCI v3.2 formula.
+  // The mean remains in constructScores['loan_consequence_awareness'] for backward compat.
+  if (constructSums['loan_consequence_awareness'] !== undefined) {
+    constructScores['loan_consequence_awareness_raw'] = constructSums['loan_consequence_awareness'];
+  }
+
   return constructScores;
 }
 
@@ -362,34 +368,37 @@ function aggregateConstructs(responses: RawResponses): ConstructScores {
 // -----------------------------------------------------------------------------
 
 /**
- * Calculate NCI (Neurocognitive Index) from construct scores
- * NCI = 50% ASFN + 50% LCA
+ * Calculate NCI (Neurocognitive Index) from construct scores.
+ * FinPsych Developer Guide v3.2 — NCI corrected formula + ASFN calibration (p=0.30)
  *
- * ASFN = average of cognitive_reflection, delay_discounting, financial_numeracy (scaled 0-100)
- * LCA = loan_consequence_awareness (normalized to 0-100)
+ * Steps:
+ *   1. ASFN_adj = 100 × (financial_numeracy)^0.30   (power-law calibration)
+ *   2. NCI      = (0.5 × ASFN_adj) + ((10/3) × LCA_raw)
  *
- * For legacy records without q62/q63, ASFN is calculated from financial_numeracy only.
+ * Max NCI = (0.5 × 100) + ((10/3) × 15) = 50 + 50 = 100 ✓
  *
- * @param constructScores - Raw construct scores from aggregateConstructs()
- * @returns NCI score (0-100), or null if minimum required constructs missing
+ * @param constructScores - Construct scores from aggregateConstructs().
+ *        Requires 'financial_numeracy' (0–1 proportion) and
+ *        'loan_consequence_awareness_raw' (0–15 integer total).
+ * @returns NCI score (0-100), or null if required constructs are missing
  */
 export function calculateNCI(constructScores: ConstructScores): number | null {
   const finNum = constructScores['financial_numeracy'];
-  const lca = constructScores['loan_consequence_awareness'];
+  const lcaRaw = constructScores['loan_consequence_awareness_raw'];
 
   // Both required
-  if (finNum === undefined || lca === undefined) {
+  if (finNum === undefined || lcaRaw === undefined) {
     return null;
   }
 
-  // ASFN = financial_numeracy proportion correct (0-1) scaled to 0-100
-  const asfnPercent = finNum * 100;
+  // ASFN calibration: power-law with p=0.30
+  // finNum is 0–1 proportion; Math.pow(0, 0.30)=0, Math.pow(1, 0.30)=1
+  const asfnAdj = 100 * Math.pow(finNum, 0.30);
 
-  // LCA: normalize from 0-3 mean to 0-100
-  const lcaPercent = (lca / 3) * 100;
+  // NCI = (0.5 × ASFN_adj) + ((10/3) × LCA_raw)
+  const nci = (0.5 * asfnAdj) + ((10 / 3) * lcaRaw);
 
-  // NCI = 50% ASFN + 50% LCA
-  return Math.round((asfnPercent * 0.5 + lcaPercent * 0.5) * 10) / 10;
+  return Math.round(nci * 10) / 10;
 }
 
 // -----------------------------------------------------------------------------

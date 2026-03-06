@@ -37,20 +37,20 @@ export interface FinPsychResult {
 // ============================================================================
 
 /**
- * Reliability info for each level (UI-agnostic)
+ * Reliability info for each level.
+ * Labels use a risk-concern scale: Minimal = most reliable, Severe = least reliable.
  */
 export const RELIABILITY_INFO: Record<DataReliabilityLevel, ReliabilityInfo> = {
-  HIGH: { level: 'HIGH', label: 'HIGH' },
-  MODERATE_HIGH: { level: 'MODERATE_HIGH', label: 'MODERATE-HIGH' },
-  MODERATE: { level: 'MODERATE', label: 'MODERATE' },
-  LOW: { level: 'LOW', label: 'LOW' },
-  VERY_LOW: { level: 'VERY_LOW', label: 'VERY LOW' },
+  HIGH: { level: 'HIGH', label: 'Minimal' },
+  MODERATE_HIGH: { level: 'MODERATE_HIGH', label: 'Low' },
+  MODERATE: { level: 'MODERATE', label: 'Moderate' },
+  LOW: { level: 'LOW', label: 'High' },
+  VERY_LOW: { level: 'VERY_LOW', label: 'Severe' },
 };
 
 /**
- * FinPsych weights by reliability level
- * Higher reliability = more equal weighting
- * Lower reliability = heavier NCI weighting (more objective measure)
+ * @deprecated Superseded by inverse-variance adaptive weighting (v3.2).
+ * Kept for backward compatibility of exports only.
  */
 export const FINPSYCH_WEIGHTS: Record<DataReliabilityLevel, FinPsychWeights> = {
   HIGH: { cwi: 0.50, nci: 0.50 },
@@ -59,6 +59,66 @@ export const FINPSYCH_WEIGHTS: Record<DataReliabilityLevel, FinPsychWeights> = {
   LOW: { cwi: 0.25, nci: 0.75 },
   VERY_LOW: { cwi: 0.15, nci: 0.85 },
 };
+
+// ============================================================================
+// Adaptive Weighting via Inverse-Variance (v3.2, Eq. 5–14)
+// ============================================================================
+
+/**
+ * Gaming severity multipliers (Eq. 6)
+ */
+const GAMING_MULTIPLIERS: Record<GamingRiskLevel, number> = {
+  MINIMAL: 1.0,
+  LOW: 1.2,
+  MODERATE: 1.6,
+  HIGH: 2.2,
+  SEVERE: 3.0,
+};
+
+/**
+ * Consistency multiplier (Eq. 8)
+ */
+function getConsistencyMultiplier(consistency: number): number {
+  if (consistency >= 85) return 1.0;
+  if (consistency >= 65) return 1.1;
+  if (consistency >= 45) return 1.3;
+  return 1.7;
+}
+
+/**
+ * Compute adaptive CWI/NCI weights via inverse-variance evidence integration.
+ * FinPsych Developer Guide v3.2 — Adaptive Weighting (Eq. 5–14)
+ *
+ * @param gamingRiskLevel - Validated gaming risk level
+ * @param consistencyScore - Consistency score (0-100), or null
+ * @returns { cwi, nci } weights that sum to 1.0
+ */
+function computeAdaptiveWeights(
+  gamingRiskLevel: GamingRiskLevel,
+  consistencyScore: number | null | undefined
+): FinPsychWeights {
+  const mGaming = GAMING_MULTIPLIERS[gamingRiskLevel];
+  const mConsistency = consistencyScore != null
+    ? getConsistencyMultiplier(consistencyScore)
+    : 1.0;
+
+  // Eq. 9: Inflate CWI variance based on gaming + consistency
+  let sigmaCwiSq = 1.0 * mGaming * mConsistency;
+
+  // Eq. 14: Variance ceiling — prevents w_cwi from dropping below ~0.25
+  sigmaCwiSq = Math.min(sigmaCwiSq, 3.0);
+
+  // Eq. 10: NCI variance is fixed (objective test, not susceptible to gaming)
+  const sigmaNciSq = 1.0;
+
+  // Eq. 11: Inverse-variance weights
+  const precisionCwi = 1.0 / sigmaCwiSq;
+  const precisionNci = 1.0 / sigmaNciSq;
+  const wCwi = precisionCwi / (precisionCwi + precisionNci);
+  const wNci = 1.0 - wCwi;
+
+  return { cwi: wCwi, nci: wNci };
+}
 
 /**
  * Gaming risk to base reliability mapping
@@ -145,16 +205,14 @@ export function getFinPsychWeights(reliability: DataReliabilityLevel): FinPsychW
 // ============================================================================
 
 /**
- * Calculate FinPsych score with adaptive weights based on reliability
+ * Calculate FinPsych score with adaptive weights via inverse-variance integration.
+ * FinPsych Developer Guide v3.2 — Adaptive Weighting (Eq. 5–14)
  *
  * Logic:
- * 1. Base reliability comes from gaming risk mapping
- * 2. If consistencyScore is provided:
- *    - < 65: reliability = VERY_LOW
- *    - < 75: reliability = LOW
- *    - else: keep base reliability
- * 3. Weights are determined by final reliability level
- * 4. FinPsych = round1(cwi * cwiWeight + nci * nciWeight)
+ * 1. Reliability label derived from gaming risk mapping (for display/storage only)
+ * 2. Adaptive weights computed from gaming + consistency multipliers
+ *    via inverse-variance formula (NOT from lookup table)
+ * 3. FinPsych = round1(cwi * w_cwi + nci * w_nci)
  *
  * @param cwiScore - CWI score (0-100)
  * @param nciScore - NCI score (0-100)
@@ -173,34 +231,22 @@ export function calculateFinPsychScore(
     return null;
   }
 
-  // Get base reliability from gaming risk
-  let reliability: DataReliabilityLevel;
+  // Resolve gaming risk level (for both reliability label and weight computation)
+  let normalizedGaming: GamingRiskLevel;
 
   if (gamingRiskLevel) {
-    const normalizedLevel = normalizeGamingRiskLevel(gamingRiskLevel);
-    if (normalizedLevel) {
-      reliability = GAMING_RISK_TO_RELIABILITY[normalizedLevel];
-    } else {
-      // Unknown gaming risk level - default to MODERATE
-      reliability = 'MODERATE';
-    }
+    const parsed = normalizeGamingRiskLevel(gamingRiskLevel);
+    normalizedGaming = parsed ?? 'MODERATE';
   } else {
-    // No gaming risk level - default to MODERATE
-    reliability = 'MODERATE';
+    normalizedGaming = 'MODERATE';
   }
 
-  // Apply consistency score adjustments if provided
-  if (consistencyScore != null) {
-    if (consistencyScore < 65) {
-      reliability = 'VERY_LOW';
-    } else if (consistencyScore < 75) {
-      reliability = 'LOW';
-    }
-    // else keep base reliability
-  }
+  // Reliability label for display/storage (derived from gaming risk only)
+  const reliability: DataReliabilityLevel = GAMING_RISK_TO_RELIABILITY[normalizedGaming];
 
-  // Get weights for final reliability level
-  const weights = FINPSYCH_WEIGHTS[reliability];
+  // Compute adaptive weights via inverse-variance (Eq. 5–14)
+  // Consistency is factored into weights directly, NOT used to override reliability
+  const weights = computeAdaptiveWeights(normalizedGaming, consistencyScore);
 
   // Calculate FinPsych score
   const score = round1(cwiScore * weights.cwi + nciScore * weights.nci);

@@ -82,13 +82,14 @@ export const QUALITY_BADGES: Record<GamingRiskLevel, QualityBadge> = {
  * - 9+ inconsistencies: SEVERE
  */
 export function deriveGamingRiskLevel(validationResult: ValidationResult): GamingRiskLevel {
-  const count = validationResult.inconsistenciesDetected;
+  // v3.2: Use gaming weighted score (5 gaming flags × weight 3 = max 15)
+  const score = validationResult.gamingWeightedScore;
 
-  if (count === 0) return 'MINIMAL';
-  if (count <= 2) return 'LOW';
-  if (count <= 5) return 'MODERATE';
-  if (count <= 8) return 'HIGH';
-  return 'SEVERE';
+  if (score === 0) return 'MINIMAL';   // 0 gaming flags
+  if (score <= 3) return 'LOW';        // 1 gaming flag
+  if (score <= 6) return 'MODERATE';   // 2 gaming flags
+  if (score <= 9) return 'HIGH';       // 3 gaming flags
+  return 'SEVERE';                     // 4-5 gaming flags
 }
 
 /**

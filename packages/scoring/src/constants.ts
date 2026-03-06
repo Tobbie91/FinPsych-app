@@ -92,13 +92,11 @@ export const FIVE_C_MAP: Record<string, string[]> = {
     'conscientiousness',    // Q17-Q21
     'agreeableness',        // Q27-Q31
     'emotional_stability',  // Q22-Q26
-    'extraversion',         // Q37-Q41
   ],
   capacity: [
     'payment_history',      // Q1-Q5, Q10
     'financial_management', // Q7-Q9, Q11-Q13
     'crisis_management',    // Q6, Q50
-    'financial_integrity',  // Q16a, Q16c, Q16d, Q16f
   ],
   capital: [
     'emergency_preparedness', // Q14a, Q14b, Q14c, Q15
@@ -110,7 +108,6 @@ export const FIVE_C_MAP: Record<string, string[]> = {
     'future_orientation',   // Q60-Q61
     'risk_preference',      // Q42-Q46
     'locus_of_control',     // Q54-Q58 (binary 0-1 scale)
-    'openness',             // Q32-Q36 (moved from character)
   ],
 };
 

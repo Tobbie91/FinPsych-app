@@ -22,7 +22,12 @@ import {
   getReliabilityFromGamingRisk,
   calculateFinPsychScore,
   round1,
+  analyzeQuadrant,
+  isGamingAlert,
+  computeFairnessMetrics,
   type DataReliabilityLevel,
+  type QuadrantResult,
+  type FairnessResult,
 } from '@fintech/validation';
 
 // Question mapping for display
@@ -252,6 +257,54 @@ function getReliabilityBadgeStyle(level: DataReliabilityLevel): {
   return styles[level];
 }
 
+// UI Helper for Gaming Risk Badge
+function getGamingRiskBadgeStyle(level: string): { bg: string; text: string } {
+  const styles: Record<string, { bg: string; text: string }> = {
+    MINIMAL: { bg: 'bg-green-100', text: 'text-green-700' },
+    LOW: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    MODERATE: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+    HIGH: { bg: 'bg-orange-100', text: 'text-orange-700' },
+    SEVERE: { bg: 'bg-red-100', text: 'text-red-700' },
+  };
+  return styles[level] || styles.MODERATE;
+}
+
+// UI Helper for Quadrant Badge
+function getQuadrantBadgeStyle(quadrant: string): { bg: string; text: string; label: string } {
+  const styles: Record<string, { bg: string; text: string; label: string }> = {
+    Q1: { bg: 'bg-green-100', text: 'text-green-700', label: 'Authentic' },
+    Q2: { bg: 'bg-red-100', text: 'text-red-700', label: 'Gaming Suspected' },
+    Q3: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Honest/Humble' },
+    Q4: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Genuine Struggle' },
+  };
+  return styles[quadrant] || styles.Q4;
+}
+
+// UI Helper for Discordance Badge
+function getDiscordanceBadgeStyle(severity: string): { bg: string; text: string } {
+  const styles: Record<string, { bg: string; text: string }> = {
+    MINIMAL: { bg: 'bg-green-100', text: 'text-green-700' },
+    LOW: { bg: 'bg-emerald-100', text: 'text-emerald-700' },
+    MODERATE: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+    HIGH: { bg: 'bg-orange-100', text: 'text-orange-700' },
+    SEVERE: { bg: 'bg-red-100', text: 'text-red-700' },
+  };
+  return styles[severity] || styles.MODERATE;
+}
+
+// FinPsych-based risk band (Section 4.3)
+function getFinPsychBand(score: number | null): {
+  label: string; color: string; description: string;
+} | null {
+  if (score === null) return null;
+  if (score >= 90) return { label: 'Excellent',  color: '#27AE60', description: 'Very Low Risk' };
+  if (score >= 80) return { label: 'Very Good',  color: '#2ECC71', description: 'Low Risk' };
+  if (score >= 70) return { label: 'Good',        color: '#F39C12', description: 'Moderate Risk' };
+  if (score >= 60) return { label: 'Fair',        color: '#E67E22', description: 'Moderate-High Risk' };
+  if (score >= 50) return { label: 'Weak',        color: '#E74C3C', description: 'High Risk' };
+  return                   { label: 'Poor',        color: '#922B21', description: 'Very High Risk' };
+}
+
 // Pie Chart Component (Full pie, not donut)
 function PieChart({
   data,
@@ -436,6 +489,7 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedApplicant, setSelectedApplicant] = useState<Applicant | null>(null);
   const [activeTab, setActiveTab] = useState<'summary' | 'individual'>('summary');
+  const [fairnessAttr, setFairnessAttr] = useState<'gender' | 'income_range' | 'age_range' | 'education'>('gender');
   const itemsPerPage = 10;
 
   const supabase = createBrowserClient(
@@ -608,70 +662,32 @@ export default function DashboardPage() {
   const sortedCountries = Object.entries(countryDistribution)
     .sort(([, a], [, b]) => b - a);
 
-  // ============ FAIRNESS METRICS CALCULATIONS ============
-  // These metrics measure bias in the credit scoring model across demographic groups
-
-  // Helper: Check if applicant is "approved" (eligible = LOW or MODERATE risk)
-  const isApproved = (applicant: Applicant) => {
-    const risk = applicant.risk_category || scores[applicant.id]?.risk_band;
-    return risk === 'LOW' || risk === 'MODERATE';
+  // ============ FAIRNESS METRICS (Section 3) ============
+  // Uses FinPsych >= 60 for approval, supports any protected attribute
+  const getFinPsychScore = (a: Applicant): number | null => {
+    const stored = (a as any).finpsych_score;
+    if (stored !== null && stored !== undefined) return stored;
+    const cwiScore = a.cwi_score ?? scores[a.id]?.cwi_0_100 ?? null;
+    const nciScore = (a as any).nci_score ?? null;
+    const gamingRisk = a.gaming_risk_level ?? null;
+    const consistencyScore = a.validation_result?.consistencyScore ?? null;
+    if (cwiScore === null) return null;
+    return calculateFinPsychScore(cwiScore, nciScore, gamingRisk, consistencyScore)?.score ?? null;
   };
 
-  // Helper: Get CWI score for applicant
-  const getScore = (applicant: Applicant) => {
-    return applicant.cwi_score || scores[applicant.id]?.cwi_0_100 || null;
+  const fairnessAttrKey: Record<typeof fairnessAttr, keyof Applicant> = {
+    gender: 'gender',
+    income_range: 'income_range',
+    age_range: 'age_range',
+    education: 'education',
   };
 
-  // Group applicants by gender for fairness analysis
-  const maleApplicants = applicants.filter(a => a.gender === 'Male');
-  const femaleApplicants = applicants.filter(a => a.gender === 'Female');
-
-  // 1. Statistical Parity Difference (SPD)
-  // Measures: P(approved | male) - P(approved | female)
-  // Fair if: -0.10 <= SPD <= 0.10
-  const maleApprovalRate = maleApplicants.length > 0
-    ? maleApplicants.filter(isApproved).length / maleApplicants.length
-    : 0;
-  const femaleApprovalRate = femaleApplicants.length > 0
-    ? femaleApplicants.filter(isApproved).length / femaleApplicants.length
-    : 0;
-  const statisticalParityDiff = maleApplicants.length > 0 && femaleApplicants.length > 0
-    ? Math.abs(maleApprovalRate - femaleApprovalRate)
-    : 0;
-  const spdCompliant = statisticalParityDiff <= 0.10;
-
-  // 2. Disparate Impact Ratio (DIR)
-  // Measures: P(approved | female) / P(approved | male) (or vice versa, using min/max)
-  // Fair if: 0.80 <= DIR <= 1.20 (the "80% rule")
-  const disparateImpactRatio = maleApprovalRate > 0 && femaleApprovalRate > 0
-    ? Math.min(maleApprovalRate, femaleApprovalRate) / Math.max(maleApprovalRate, femaleApprovalRate)
-    : 1;
-  const dirCompliant = disparateImpactRatio >= 0.80;
-  const dirLevel = disparateImpactRatio >= 0.90 ? 'High' : disparateImpactRatio >= 0.80 ? 'Medium' : 'Low';
-
-  // 3. Standardized Mean Difference (SMD)
-  // Measures: (mean_male - mean_female) / pooled_std_dev
-  // Monitor if: SMD > 0.25
-  const maleScores = maleApplicants.map(getScore).filter((s): s is number => s !== null);
-  const femaleScores = femaleApplicants.map(getScore).filter((s): s is number => s !== null);
-
-  const mean = (arr: number[]) => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-  const variance = (arr: number[], m: number) => arr.length > 0
-    ? arr.reduce((sum, val) => sum + Math.pow(val - m, 2), 0) / arr.length
-    : 0;
-
-  const maleMean = mean(maleScores);
-  const femaleMean = mean(femaleScores);
-  const maleVar = variance(maleScores, maleMean);
-  const femaleVar = variance(femaleScores, femaleMean);
-
-  // Pooled standard deviation
-  const pooledStdDev = Math.sqrt((maleVar + femaleVar) / 2);
-  const standardizedMeanDiff = pooledStdDev > 0
-    ? Math.abs(maleMean - femaleMean) / pooledStdDev
-    : 0;
-  const smdLevel = standardizedMeanDiff < 0.15 ? 'Normal' : standardizedMeanDiff < 0.25 ? 'Moderate' : 'High';
-  const smdNeedsMonitoring = standardizedMeanDiff >= 0.20;
+  const fairness: FairnessResult = computeFairnessMetrics(
+    applicants.map(a => ({
+      finpsychScore: getFinPsychScore(a),
+      group: (a[fairnessAttrKey[fairnessAttr]] as string) || '',
+    }))
+  );
 
   // Filter applicants for the table
   const filteredApplicants = applicants.filter(
@@ -889,30 +905,60 @@ export default function DashboardPage() {
         <>
           {/* Fairness Metrics */}
           <div className="bg-[#2a3849] rounded-xl border border-slate-700 p-6 mb-6">
-            <h3 className="text-lg font-semibold text-white mb-2">Fairness Metrics Dashboard</h3>
-            <p className="text-sm text-gray-400 mb-4">Comparing approval rates and scores between Male and Female applicants</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Fairness Metrics Dashboard</h3>
+                <p className="text-sm text-gray-400">Population-level fairness across protected attributes (FinPsych &ge; 60 = approved)</p>
+              </div>
+              <div className="flex gap-1 bg-[#334155] rounded-lg p-1">
+                {([
+                  ['gender', 'Gender'],
+                  ['income_range', 'Income'],
+                  ['age_range', 'Age'],
+                  ['education', 'Education'],
+                ] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setFairnessAttr(key)}
+                    className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                      fairnessAttr === key
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Statistical Parity Difference */}
               <div className="bg-[#334155] border border-slate-600 rounded-xl p-4">
                 <p className="text-sm text-gray-300 mb-2">Statistical Parity Difference</p>
                 <div className="flex items-center justify-between">
                   <p className="text-3xl font-bold text-white">
-                    {totalResponses > 0 ? statisticalParityDiff.toFixed(2) : 'N/A'}
+                    {totalResponses > 0 ? fairness.spd.toFixed(2) : 'N/A'}
                   </p>
                   {totalResponses > 0 && (
                     <span className={`flex items-center gap-1 px-2 py-1 text-sm rounded-full ${
-                      spdCompliant
+                      fairness.spdStatus === 'COMPLIANT'
                         ? 'bg-green-500/20 text-green-400'
+                        : fairness.spdStatus === 'MONITOR'
+                        ? 'bg-yellow-500/20 text-yellow-400'
                         : 'bg-red-500/20 text-red-400'
                     }`}>
-                      {spdCompliant ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                      {spdCompliant ? 'Compliant' : 'Review'}
+                      {fairness.spdStatus === 'COMPLIANT' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                      {fairness.spdStatus}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 mt-2">Threshold: ±0.10</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Threshold: {Object.keys(fairness.approvalRates).length === 2 ? '0.10' : '0.15'} (binary/multi)
+                </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Male: {(maleApprovalRate * 100).toFixed(0)}% | Female: {(femaleApprovalRate * 100).toFixed(0)}% approved
+                  {Object.entries(fairness.approvalRates).map(([g, r]) =>
+                    `${g}: ${(r * 100).toFixed(0)}%`
+                  ).join(' | ')}
                 </p>
               </div>
 
@@ -921,22 +967,24 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-300 mb-2">Disparate Impact Ratio</p>
                 <div className="flex items-center justify-between">
                   <p className="text-3xl font-bold text-white">
-                    {totalResponses > 0 ? dirLevel : 'N/A'}
+                    {totalResponses > 0 ? fairness.dir.toFixed(2) : 'N/A'}
                   </p>
                   {totalResponses > 0 && (
                     <span className={`flex items-center gap-1 px-2 py-1 text-sm rounded-full ${
-                      dirCompliant
+                      fairness.dirStatus === 'COMPLIANT'
                         ? 'bg-green-500/20 text-green-400'
+                        : fairness.dirStatus === 'MONITOR'
+                        ? 'bg-yellow-500/20 text-yellow-400'
                         : 'bg-red-500/20 text-red-400'
                     }`}>
-                      {dirCompliant ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                      {dirCompliant ? 'Compliant' : 'Review'}
+                      {fairness.dirStatus === 'COMPLIANT' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                      {fairness.dirStatus}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 mt-2">Threshold: 0.80-1.20</p>
+                <p className="text-sm text-gray-400 mt-2">Threshold: &ge; 0.80</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Ratio: {(disparateImpactRatio * 100).toFixed(0)}%
+                  Ratio: {(fairness.dir * 100).toFixed(0)}%
                 </p>
               </div>
 
@@ -945,22 +993,28 @@ export default function DashboardPage() {
                 <p className="text-sm text-gray-300 mb-2">Standardized Mean Difference</p>
                 <div className="flex items-center justify-between">
                   <p className="text-3xl font-bold text-white">
-                    {totalResponses > 0 ? smdLevel : 'N/A'}
+                    {totalResponses > 0
+                      ? fairness.smd !== null ? fairness.smd.toFixed(2) : 'N/A (multi)'
+                      : 'N/A'}
                   </p>
-                  {totalResponses > 0 && (
+                  {totalResponses > 0 && fairness.smdStatus && (
                     <span className={`flex items-center gap-1 px-2 py-1 text-sm rounded-full ${
-                      !smdNeedsMonitoring
+                      fairness.smdStatus === 'COMPLIANT'
                         ? 'bg-green-500/20 text-green-400'
-                        : 'bg-yellow-500/20 text-yellow-400'
+                        : fairness.smdStatus === 'MONITOR'
+                        ? 'bg-yellow-500/20 text-yellow-400'
+                        : 'bg-red-500/20 text-red-400'
                     }`}>
-                      {!smdNeedsMonitoring ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
-                      {!smdNeedsMonitoring ? 'Good' : 'Monitor'}
+                      {fairness.smdStatus === 'COMPLIANT' ? <CheckCircle className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                      {fairness.smdStatus}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 mt-2">Threshold: &lt;0.25</p>
+                <p className="text-sm text-gray-400 mt-2">Threshold: &lt; 0.20 (negligible) / &lt; 0.50 (small)</p>
                 <p className="text-xs text-gray-500 mt-1">
-                  SMD: {standardizedMeanDiff.toFixed(2)} | M avg: {maleMean.toFixed(1)} | F avg: {femaleMean.toFixed(1)}
+                  {fairness.smd !== null
+                    ? `Cohen's d: ${fairness.smd.toFixed(2)}`
+                    : 'Binary groups only'}
                 </p>
               </div>
             </div>
@@ -1182,15 +1236,18 @@ export default function DashboardPage() {
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">FinPsych Score</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">CWI</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">NCI</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Gaming</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Consistency</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Quadrant</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Reliability</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Risk</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Credit Risk</th>
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-300">Submitted</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedApplicants.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-12 text-center text-gray-400">
+                    <td colSpan={10} className="py-12 text-center text-gray-400">
                       {applicants.length === 0 ? 'No applicants yet' : 'No applicants match your search'}
                     </td>
                   </tr>
@@ -1273,6 +1330,43 @@ export default function DashboardPage() {
                             {nciScore !== null ? nciScore.toFixed(1) : 'N/A'}
                           </span>
                         </td>
+                        {/* Gaming Risk badge */}
+                        <td className="py-4 px-4">
+                          {(() => {
+                            const gamingRisk = applicant.gaming_risk_level || null;
+                            if (!gamingRisk) return <span className="text-gray-400 text-sm">N/A</span>;
+                            const style = getGamingRiskBadgeStyle(gamingRisk);
+                            return (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${style.bg} ${style.text}`}>
+                                {gamingRisk}
+                              </span>
+                            );
+                          })()}
+                        </td>
+                        {/* Consistency score */}
+                        <td className="py-4 px-4">
+                          <span className="text-gray-300">
+                            {consistencyScore !== null ? consistencyScore : 'N/A'}
+                          </span>
+                        </td>
+                        {/* Quadrant badge */}
+                        <td className="py-4 px-4">
+                          {(() => {
+                            if (cwiScore === null || nciScore === null) return <span className="text-gray-400 text-sm">N/A</span>;
+                            const qr = analyzeQuadrant(cwiScore, nciScore);
+                            const style = getQuadrantBadgeStyle(qr.quadrant);
+                            const gamingRisk = applicant.gaming_risk_level || '';
+                            const showAlert = isGamingAlert(qr.quadrant, gamingRisk);
+                            return (
+                              <div className="flex items-center gap-1">
+                                {showAlert && <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${style.bg} ${style.text}`}>
+                                  {qr.quadrant}
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </td>
                         {/* Reliability badge */}
                         <td className="py-4 px-4">
                           {reliabilityInfo ? (
@@ -1297,19 +1391,16 @@ export default function DashboardPage() {
                         </td>
                         {/* Risk badge */}
                         <td className="py-4 px-4">
-                          {risk ? (
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                              risk === 'LOW' ? 'bg-green-100 text-green-700' :
-                              risk === 'MODERATE' ? 'bg-yellow-100 text-yellow-700' :
-                              risk === 'MODERATE_HIGH' ? 'bg-amber-100 text-amber-700' :
-                              risk === 'HIGH' ? 'bg-orange-100 text-orange-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {risk.replaceAll('_', ' ')}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
-                          )}
+                          {(() => {
+                            const band = getFinPsychBand(finPsychScore);
+                            if (!band) return <span className="text-gray-400">N/A</span>;
+                            return (
+                              <span className="px-2 py-1 text-xs font-medium rounded-full"
+                                style={{ backgroundColor: band.color + '22', color: band.color }}>
+                                {band.label}
+                              </span>
+                            );
+                          })()}
                         </td>
                         {/* Submitted date */}
                         <td className="py-4 px-4 text-gray-400">
@@ -1414,6 +1505,32 @@ export default function DashboardPage() {
                         </div>
                       </div>
 
+                      {/* Gaming / Consistency / Quadrant Row */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div>
+                          <p className="text-xs text-gray-400">Gaming</p>
+                          {(() => {
+                            const gamingRisk = applicant.gaming_risk_level || null;
+                            if (!gamingRisk) return <span className="text-gray-400 text-xs">N/A</span>;
+                            const style = getGamingRiskBadgeStyle(gamingRisk);
+                            return <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${style.bg} ${style.text}`}>{gamingRisk}</span>;
+                          })()}
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">Consistency</p>
+                          <p className="text-gray-300 text-sm">{consistencyScore ?? 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">Quadrant</p>
+                          {(() => {
+                            if (cwiScore === null || nciScore === null) return <span className="text-gray-400 text-xs">N/A</span>;
+                            const qr = analyzeQuadrant(cwiScore, nciScore);
+                            const style = getQuadrantBadgeStyle(qr.quadrant);
+                            return <span className={`px-1.5 py-0.5 text-xs font-medium rounded-full ${style.bg} ${style.text}`}>{qr.quadrant}</span>;
+                          })()}
+                        </div>
+                      </div>
+
                       {/* Badges and Date Row */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -1428,18 +1545,17 @@ export default function DashboardPage() {
                               );
                             })()
                           )}
-                          {/* Risk Badge */}
-                          {risk && (
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                              risk === 'LOW' ? 'bg-green-100 text-green-700' :
-                              risk === 'MODERATE' ? 'bg-yellow-100 text-yellow-700' :
-                              risk === 'MODERATE_HIGH' ? 'bg-amber-100 text-amber-700' :
-                              risk === 'HIGH' ? 'bg-orange-100 text-orange-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {risk.replaceAll('_', ' ')}
-                            </span>
-                          )}
+                          {/* Risk Badge (FinPsych band) */}
+                          {(() => {
+                            const band = getFinPsychBand(finPsychScore);
+                            if (!band) return null;
+                            return (
+                              <span className="px-2 py-0.5 text-xs font-medium rounded-full"
+                                style={{ backgroundColor: band.color + '22', color: band.color }}>
+                                {band.label}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <span className="text-xs text-gray-400">
                           {new Date(applicant.submitted_at).toLocaleDateString('en-US', {
@@ -1575,70 +1691,151 @@ export default function DashboardPage() {
 
           {selectedApplicant && scores[selectedApplicant.id] && (
             <>
-              {/* Overview Section with Gaming Detection */}
+              {/* Overview Section with v3.2 Gaming/Quadrant/Discordance Analysis */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Overview</h3>
 
-                {/* Gaming Detection Alert */}
                 {(() => {
                   const score = scores[selectedApplicant.id];
-                  const riskBand = score.risk_band;
                   const cwiScore = score.cwi_0_100;
-                  const applicantResponses = responses[selectedApplicant.id] || [];
-
-                  // ===== GET NEUROCOGNITIVE INDEX (NCI) FROM DATABASE =====
-                  // NCI = 50% ASFN + 50% LCA
                   const nciScore = selectedApplicant.nci_score || 0;
+                  const gamingRisk = selectedApplicant.gaming_risk_level || 'MODERATE';
+                  const consistencyScore = selectedApplicant.validation_result?.consistencyScore
+                    ?? selectedApplicant.quality_score ?? null;
 
-                  // Determine if there's a significant discrepancy (gaming indicator)
-                  const difference = cwiScore - nciScore;
-                  const isHighRisk = difference > 30 || riskBand === 'HIGH' || riskBand === 'VERY_HIGH';
+                  const qr = analyzeQuadrant(cwiScore, nciScore);
+                  const showGamingAlert = isGamingAlert(qr.quadrant, gamingRisk);
+
+                  // Compute weights for display
+                  const finPsychCalc = calculateFinPsychScore(cwiScore, nciScore, gamingRisk, consistencyScore);
+                  const finPsychScore = (selectedApplicant as any).finpsych_score ?? finPsychCalc?.score ?? null;
+                  const weights = finPsychCalc?.weights ?? null;
 
                   return (
-                    <div className={`mb-6 p-4 border-l-4 rounded-r-lg ${
-                      isHighRisk ? 'bg-red-50 border-red-500' : 'bg-green-50 border-green-500'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-600">
-                          Gaming Detection
-                        </span>
-                        <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                          isHighRisk ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                        }`}>
-                          {riskBand} RISK
-                        </span>
-                      </div>
-                      {isHighRisk && (
-                        <p className="text-red-600 text-sm mb-4">
-                          Significant discrepancy detected: CWI score substantially higher than neurocognitive performance
-                        </p>
+                    <div className="space-y-4">
+                      {/* Red Alert Banner: Q2 + HIGH/SEVERE gaming */}
+                      {showGamingAlert && (
+                        <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-600" />
+                            <span className="font-semibold text-red-700">GAMING ALERT</span>
+                          </div>
+                          <p className="text-red-600 text-sm mt-1">
+                            Applicant classified as &quot;Gaming Suspected&quot; (Q2) with {gamingRisk} gaming risk.
+                            CWI score is significantly inflated relative to neurocognitive performance.
+                          </p>
+                        </div>
                       )}
 
-                      {/* Score Comparison Grid */}
-                      <div className="grid grid-cols-3 gap-6 mt-4">
-                        <div>
+                      {/* Score Comparison: CWI / NCI / FinPsych */}
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-gray-50 rounded-xl p-4">
                           <p className="text-sm text-gray-500 mb-1">CWI Score</p>
+                          <span className="text-3xl font-bold text-gray-900">
+                            {cwiScore.toFixed(1)}
+                          </span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">NCI Score</p>
+                          <span className="text-3xl font-bold text-gray-900">
+                            {nciScore.toFixed(1)}
+                          </span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">FinPsych Score</p>
+                          {(() => {
+                            const band = getFinPsychBand(finPsychScore);
+                            return (
+                              <>
+                                <span className="text-3xl font-bold" style={band ? { color: band.color } : {}}>
+                                  {finPsychScore !== null ? round1(finPsychScore).toFixed(1) : 'N/A'}
+                                </span>
+                                {band && (
+                                  <p className="text-xs mt-1" style={{ color: band.color }}>
+                                    {band.label} — {band.description}
+                                  </p>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Quadrant + Discordance */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">Quadrant</p>
                           <div className="flex items-center gap-2">
-                            <span className="text-3xl font-bold text-gray-900">
-                              {cwiScore.toFixed(0)}
-                              <span className="text-sm font-normal text-gray-400">/100</span>
-                            </span>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded flex items-center gap-1 ${
-                              isHighRisk ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                            }`}>
-                              <AlertTriangle className="w-3 h-3" />
-                              {riskBand} Risk
-                            </span>
+                            {(() => {
+                              const style = getQuadrantBadgeStyle(qr.quadrant);
+                              return (
+                                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${style.bg} ${style.text}`}>
+                                  {qr.quadrant}
+                                </span>
+                              );
+                            })()}
+                            <span className="text-gray-700 font-medium">{qr.label}</span>
                           </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">NCI (Neurocognitive Index)</p>
-                          <span className="text-3xl font-bold text-gray-900">{nciScore.toFixed(0)}</span>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">Discordance</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-bold text-gray-900">{qr.discordance.toFixed(1)}</span>
+                            {(() => {
+                              const dStyle = getDiscordanceBadgeStyle(qr.discordanceSeverity);
+                              return (
+                                <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${dStyle.bg} ${dStyle.text}`}>
+                                  {qr.discordanceSeverity}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">Difference</p>
-                          <span className={`text-3xl font-bold ${difference > 40 ? 'text-red-600' : 'text-gray-900'}`}>
-                            +{difference.toFixed(0)}
+                      </div>
+
+                      {/* Gaming / Consistency / Reliability / Weights */}
+                      <div className="grid grid-cols-5 gap-4">
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">Gaming Risk</p>
+                          {(() => {
+                            const style = getGamingRiskBadgeStyle(gamingRisk);
+                            return (
+                              <span className={`px-3 py-1 text-sm font-semibold rounded-full ${style.bg} ${style.text}`}>
+                                {gamingRisk}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">Consistency</p>
+                          <span className="text-2xl font-bold text-gray-900">
+                            {consistencyScore ?? 'N/A'}
+                          </span>
+                          <span className="text-sm text-gray-400">/100</span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">Reliability</p>
+                          {(() => {
+                            const rel = getReliabilityFromGamingRisk(gamingRisk);
+                            if (!rel) return <span className="text-gray-400">N/A</span>;
+                            const style = getReliabilityBadgeStyle(rel.level);
+                            return (
+                              <span className={`px-3 py-1 text-sm font-semibold rounded-full ${style.bg} ${style.text}`}>
+                                {rel.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">w_cwi</p>
+                          <span className="text-2xl font-bold text-gray-900">
+                            {weights ? weights.cwi.toFixed(3) : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <p className="text-sm text-gray-500 mb-1">w_nci</p>
+                          <span className="text-2xl font-bold text-gray-900">
+                            {weights ? weights.nci.toFixed(3) : 'N/A'}
                           </span>
                         </div>
                       </div>
@@ -1800,15 +1997,23 @@ export default function DashboardPage() {
                   </div>
                   <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex justify-between">
-                      <span>ASFN (50% weight):</span>
+                      <span>ASFN (raw):</span>
                       <span className="font-medium">{selectedApplicant.asfn_overall_score?.toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>LCA (50% weight):</span>
-                      <span className="font-medium">{selectedApplicant.lca_percent?.toFixed(1)}%</span>
+                      <span>ASFN_adj (calibrated, p=0.30):</span>
+                      <span className="font-medium">
+                        {selectedApplicant.asfn_overall_score != null
+                          ? (100 * Math.pow(selectedApplicant.asfn_overall_score / 100, 0.30)).toFixed(2)
+                          : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>LCA raw total:</span>
+                      <span className="font-medium">{selectedApplicant.lca_raw_score?.toFixed(0)}/15</span>
                     </div>
                     <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-500">
-                      Formula: NCI = (0.5 × ASFN) + (0.5 × LCA)
+                      Formula: NCI = (0.5 × ASFN_adj) + ((10/3) × LCA_raw)
                     </div>
                   </div>
                 </div>

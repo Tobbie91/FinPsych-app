@@ -3,6 +3,7 @@ export {
   formatValidationReport,
   type ValidationResult,
   type ConsistencyFlag,
+  type GamingFlag,
   type QuestionnaireResponses,
 } from './consistency-checks';
 
@@ -28,3 +29,21 @@ export {
   type FinPsychWeights,
   type FinPsychResult,
 } from './reliability';
+
+export {
+  classifyQuadrant,
+  calculateDiscordance,
+  getQuadrantLabel,
+  analyzeQuadrant,
+  isGamingAlert,
+  type Quadrant,
+  type DiscordanceSeverity,
+  type QuadrantResult,
+} from './quadrant';
+
+export {
+  computeFairnessMetrics,
+  type FairnessResult,
+  type FairnessApplicant,
+  type FairnessStatus,
+} from './fairness';
