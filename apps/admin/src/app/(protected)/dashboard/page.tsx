@@ -305,6 +305,23 @@ function getFinPsychBand(score: number | null): {
   return                   { label: 'Poor',        color: '#922B21', description: 'Very High Risk' };
 }
 
+// Recompute NCI from displayed ASFN and LCA values (v3.2 formula)
+// Ensures NCI is consistent with the ASFN_adj and LCA shown in the UI.
+// Falls back to stored nci_score when ASFN/LCA data is unavailable.
+function recomputeNCI(
+  asfnOverallScore: number | null | undefined,
+  lcaRawScore: number | null | undefined,
+  storedNci: number | null | undefined
+): number | null {
+  if (asfnOverallScore != null && lcaRawScore != null) {
+    const finNum = asfnOverallScore / 100;
+    const asfnAdj = 100 * Math.pow(finNum, 0.30);
+    const nci = (0.5 * asfnAdj) + ((10 / 3) * lcaRawScore);
+    return Math.round(nci * 10) / 10;
+  }
+  return storedNci ?? null;
+}
+
 // Pie Chart Component (Full pie, not donut)
 function PieChart({
   data,
@@ -665,10 +682,8 @@ export default function DashboardPage() {
   // ============ FAIRNESS METRICS (Section 3) ============
   // Uses FinPsych >= 60 for approval, supports any protected attribute
   const getFinPsychScore = (a: Applicant): number | null => {
-    const stored = (a as any).finpsych_score;
-    if (stored !== null && stored !== undefined) return stored;
     const cwiScore = a.cwi_score ?? scores[a.id]?.cwi_0_100 ?? null;
-    const nciScore = (a as any).nci_score ?? null;
+    const nciScore = recomputeNCI(a.asfn_overall_score, a.lca_raw_score, a.nci_score);
     const gamingRisk = a.gaming_risk_level ?? null;
     const consistencyScore = a.validation_result?.consistencyScore ?? null;
     if (cwiScore === null) return null;
@@ -1255,39 +1270,23 @@ export default function DashboardPage() {
                   paginatedApplicants.map((applicant) => {
                     const score = scores[applicant.id];
                     const cwiScore = applicant.cwi_score ?? score?.cwi_0_100 ?? null;
-                    const nciScore = applicant.nci_score ?? null;
+                    const nciScore = recomputeNCI(applicant.asfn_overall_score, applicant.lca_raw_score, applicant.nci_score);
                     const risk = applicant.risk_category || score?.risk_band;
                     const consistencyScore = applicant.validation_result?.consistencyScore
                       ?? applicant.quality_score
                       ?? null;
 
-                    // FinPsych: use stored values if available (faster), fallback to calculation
-                    const storedFinPsych = (applicant as any).finpsych_score;
-                    const storedReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
-
-                    let finPsychScore: number | null;
-                    let reliabilityInfo: { level: DataReliabilityLevel; label: string } | null;
-
-                    if (storedFinPsych !== null && storedFinPsych !== undefined && storedReliability) {
-                      // Use stored values (optimized path)
-                      finPsychScore = storedFinPsych;
-                      reliabilityInfo = {
-                        level: storedReliability as DataReliabilityLevel,
-                        label: (storedReliability as string).replaceAll('_', '-')
-                      };
-                    } else {
-                      // Calculate on-the-fly for legacy records (fallback path)
-                      const finPsychCalc = calculateFinPsychScore(
-                        cwiScore,
-                        nciScore,
-                        applicant.gaming_risk_level,
-                        consistencyScore
-                      );
-                      finPsychScore = finPsychCalc?.score ?? null;
-                      reliabilityInfo = finPsychCalc
-                        ? { level: finPsychCalc.reliability, label: finPsychCalc.reliability.replaceAll('_', '-') }
-                        : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
-                    }
+                    // Always recompute FinPsych from corrected NCI to ensure consistency
+                    const finPsychCalc = calculateFinPsychScore(
+                      cwiScore,
+                      nciScore,
+                      applicant.gaming_risk_level,
+                      consistencyScore
+                    );
+                    const finPsychScore = finPsychCalc?.score ?? null;
+                    const reliabilityInfo: { level: DataReliabilityLevel; label: string } | null = finPsychCalc
+                      ? { level: finPsychCalc.reliability, label: finPsychCalc.reliability.replaceAll('_', '-') }
+                      : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
 
                     return (
                       <tr
@@ -1427,39 +1426,23 @@ export default function DashboardPage() {
                 paginatedApplicants.map((applicant) => {
                   const score = scores[applicant.id];
                   const cwiScore = applicant.cwi_score ?? score?.cwi_0_100 ?? null;
-                  const nciScore = applicant.nci_score ?? null;
+                  const nciScore = recomputeNCI(applicant.asfn_overall_score, applicant.lca_raw_score, applicant.nci_score);
                   const risk = applicant.risk_category || score?.risk_band;
                   const consistencyScore = applicant.validation_result?.consistencyScore
                     ?? applicant.quality_score
                     ?? null;
 
-                  // FinPsych: use stored values if available (faster), fallback to calculation
-                  const storedFinPsych = (applicant as any).finpsych_score;
-                  const storedReliability = (applicant as any).data_reliability || (applicant as any).quality_rating;
-
-                  let finPsychScore: number | null;
-                  let reliabilityInfo: { level: DataReliabilityLevel; label: string } | null;
-
-                  if (storedFinPsych !== null && storedFinPsych !== undefined && storedReliability) {
-                    // Use stored values (optimized path)
-                    finPsychScore = storedFinPsych;
-                    reliabilityInfo = {
-                      level: storedReliability as DataReliabilityLevel,
-                      label: (storedReliability as string).replaceAll('_', '-')
-                    };
-                  } else {
-                    // Calculate on-the-fly for legacy records (fallback path)
-                    const finPsychCalc = calculateFinPsychScore(
-                      cwiScore,
-                      nciScore,
-                      applicant.gaming_risk_level,
-                      consistencyScore
-                    );
-                    finPsychScore = finPsychCalc?.score ?? null;
-                    reliabilityInfo = finPsychCalc
-                      ? { level: finPsychCalc.reliability, label: finPsychCalc.reliability.replaceAll('_', '-') }
-                      : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
-                  }
+                  // Always recompute FinPsych from corrected NCI
+                  const finPsychCalc = calculateFinPsychScore(
+                    cwiScore,
+                    nciScore,
+                    applicant.gaming_risk_level,
+                    consistencyScore
+                  );
+                  const finPsychScore = finPsychCalc?.score ?? null;
+                  const reliabilityInfo: { level: DataReliabilityLevel; label: string } | null = finPsychCalc
+                    ? { level: finPsychCalc.reliability, label: finPsychCalc.reliability.replaceAll('_', '-') }
+                    : getReliabilityFromGamingRisk(applicant.gaming_risk_level);
 
                   return (
                     <div
@@ -1698,7 +1681,7 @@ export default function DashboardPage() {
                 {(() => {
                   const score = scores[selectedApplicant.id];
                   const cwiScore = score.cwi_0_100;
-                  const nciScore = selectedApplicant.nci_score || 0;
+                  const nciScore = recomputeNCI(selectedApplicant.asfn_overall_score, selectedApplicant.lca_raw_score, selectedApplicant.nci_score) || 0;
                   const gamingRisk = selectedApplicant.gaming_risk_level || 'MODERATE';
                   const consistencyScore = selectedApplicant.validation_result?.consistencyScore
                     ?? selectedApplicant.quality_score ?? null;
@@ -1706,9 +1689,9 @@ export default function DashboardPage() {
                   const qr = analyzeQuadrant(cwiScore, nciScore);
                   const showGamingAlert = isGamingAlert(qr.quadrant, gamingRisk);
 
-                  // Compute weights for display
+                  // Always recompute FinPsych from corrected NCI
                   const finPsychCalc = calculateFinPsychScore(cwiScore, nciScore, gamingRisk, consistencyScore);
-                  const finPsychScore = (selectedApplicant as any).finpsych_score ?? finPsychCalc?.score ?? null;
+                  const finPsychScore = finPsychCalc?.score ?? null;
                   const weights = finPsychCalc?.weights ?? null;
 
                   return (
@@ -1982,7 +1965,10 @@ export default function DashboardPage() {
               )}
 
               {/* Neurocognitive Index (NCI) Summary Card */}
-              {selectedApplicant.nci_score !== null && selectedApplicant.nci_score !== undefined && (
+              {(() => {
+                const nciDisplay = recomputeNCI(selectedApplicant.asfn_overall_score, selectedApplicant.lca_raw_score, selectedApplicant.nci_score);
+                if (nciDisplay === null) return null;
+                return (
                 <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Neurocognitive Index (NCI)
@@ -1991,7 +1977,7 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700 font-medium">Overall NCI Score:</span>
                       <span className="text-3xl font-bold text-indigo-600">
-                        {selectedApplicant.nci_score.toFixed(1)}%
+                        {nciDisplay.toFixed(1)}%
                       </span>
                     </div>
                   </div>
@@ -2017,7 +2003,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* Detailed Assessment Breakdown */}
               <div className="bg-white rounded-xl border border-gray-200 p-6">
